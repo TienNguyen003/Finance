@@ -31,6 +31,7 @@ const App = () => {
     const [sectionsOpen, setSectionsOpen] = useState({ income: true, expense: true });
     const [isLoaded, setIsLoaded] = useState(false);
     const [toast, setToast] = useState(null); // Quan trọng: Chống ghi đè khi khởi tạo
+    const [confirmDialog, setConfirmDialog] = useState(null);
 
     // --- EFFECTS ---
 
@@ -117,7 +118,8 @@ const App = () => {
 
     const syncToGoogle = async () => {
         if (!config.scriptUrl) return showToast('Vui lòng dán Web App URL!', 'error');
-        if (!window.confirm('Đồng bộ dữ liệu hiện tại lên Google Sheets?')) return;
+        const confirmed = await showConfirm('Đồng bộ dữ liệu hiện tại lên Google Sheets?');
+        if (!confirmed) return;
 
         setIsLoading(true);
         const historyData = JSON.parse(localStorage.getItem('expense_detail_data')) || [];
@@ -144,7 +146,10 @@ const App = () => {
 
     async function loadFromGoogle() {
         if (!config.scriptUrl) return showToast('Vui lòng điền Web App URL!', 'error');
-        if (!window.confirm('Hành động này sẽ ghi đè dữ liệu trên máy bằng dữ liệu từ Sheets. Tiếp tục?')) return;
+        const confirmed = await showConfirm(
+            'Hành động này sẽ ghi đè dữ liệu trên máy bằng dữ liệu từ Sheets. Tiếp tục?',
+        );
+        if (!confirmed) return;
 
         setIsLoading(true);
         try {
@@ -173,6 +178,13 @@ const App = () => {
     const showToast = (message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
+    };
+
+    // Hàm show confirm (thay window.confirm để tránh lỗi iOS)
+    const showConfirm = (message) => {
+        return new Promise((resolve) => {
+            setConfirmDialog({ message, resolve });
+        });
     };
 
     return (
@@ -610,6 +622,43 @@ const App = () => {
                             <X />
                         </button>
                         <iframe src={config.sheetUrl} className="w-full flex-1 border-none" title="Google Sheets" />
+                    </div>
+                </div>
+            )}
+
+            {/* CUSTOM CONFIRM DIALOG - FIX IOS ISSUE */}
+            {confirmDialog && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity" />
+                    <div className="relative w-full max-w-sm bg-white rounded-[3rem] p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+                        <div className="text-center mb-8">
+                            <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
+                                ⚠️
+                            </div>
+                            <p className="text-base font-bold text-slate-700 leading-relaxed">
+                                {confirmDialog.message}
+                            </p>
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    confirmDialog.resolve(false);
+                                    setConfirmDialog(null);
+                                }}
+                                className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-3xl font-black active:scale-95 transition-all uppercase text-xs tracking-widest"
+                            >
+                                HỦY
+                            </button>
+                            <button
+                                onClick={() => {
+                                    confirmDialog.resolve(true);
+                                    setConfirmDialog(null);
+                                }}
+                                className="flex-1 py-5 bg-indigo-600 text-white rounded-3xl font-black shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase text-xs tracking-widest"
+                            >
+                                XÁC NHẬN
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
