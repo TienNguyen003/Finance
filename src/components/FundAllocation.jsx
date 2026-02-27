@@ -95,7 +95,7 @@ const FundPage = () => {
         };
 
         try {
-            const response = await fetch(localStorage.getItem('google_script_url'), {
+            await fetch(localStorage.getItem('google_script_url'), {
                 method: 'POST',
                 body: JSON.stringify(payload),
             });
