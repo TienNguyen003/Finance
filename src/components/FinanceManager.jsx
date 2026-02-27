@@ -179,14 +179,16 @@ const App = () => {
         <div className="min-h-screen bg-slate-100 p-4 md:p-8 text-slate-800">
             {/* TOAST NOTIFICATION */}
             {toast && (
-                <div className={`fixed top-4 right-4 z-[110] p-4 rounded-2xl shadow-lg animate-in slide-in-from-top-2 duration-300 flex items-center gap-3 ${
-                    toast.type === 'success' 
-                        ? 'bg-emerald-500 text-white' 
-                        : 'bg-rose-500 text-white'
-                }`}>
-                    <div className={`w-2 h-2 rounded-full ${
-                        toast.type === 'success' ? 'bg-emerald-200' : 'bg-rose-200'
-                    } animate-pulse`}></div>
+                <div
+                    className={`fixed top-4 right-4 z-[110] p-4 rounded-2xl shadow-lg animate-in slide-in-from-top-2 duration-300 flex items-center gap-3 ${
+                        toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                    }`}
+                >
+                    <div
+                        className={`w-2 h-2 rounded-full ${
+                            toast.type === 'success' ? 'bg-emerald-200' : 'bg-rose-200'
+                        } animate-pulse`}
+                    ></div>
                     <span className="font-bold">{toast.message}</span>
                     <button onClick={() => setToast(null)} className="ml-2 hover:opacity-80">
                         <X size={18} />

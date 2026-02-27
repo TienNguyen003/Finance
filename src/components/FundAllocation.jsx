@@ -125,16 +125,20 @@ const FundPage = () => {
     }
 
     return (
-        <div className="relative min-h-screen bg-slate-50/50 pb-5">            {/* TOAST NOTIFICATION */}
+        <div className="relative min-h-screen bg-slate-50/50 pb-5">
+            {' '}
+            {/* TOAST NOTIFICATION */}
             {toast && (
-                <div className={`fixed top-4 right-4 z-[110] p-4 rounded-2xl shadow-lg animate-in slide-in-from-top-2 duration-300 flex items-center gap-3 ${
-                    toast.type === 'success' 
-                        ? 'bg-emerald-500 text-white' 
-                        : 'bg-rose-500 text-white'
-                }`}>
-                    <div className={`w-2 h-2 rounded-full ${
-                        toast.type === 'success' ? 'bg-emerald-200' : 'bg-rose-200'
-                    } animate-pulse`}></div>
+                <div
+                    className={`fixed top-4 right-4 z-[110] p-4 rounded-2xl shadow-lg animate-in slide-in-from-top-2 duration-300 flex items-center gap-3 ${
+                        toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                    }`}
+                >
+                    <div
+                        className={`w-2 h-2 rounded-full ${
+                            toast.type === 'success' ? 'bg-emerald-200' : 'bg-rose-200'
+                        } animate-pulse`}
+                    ></div>
                     <span className="font-bold">{toast.message}</span>
                     <button onClick={() => setToast(null)} className="ml-2 hover:opacity-80">
                         <X size={18} />
@@ -155,7 +159,6 @@ const FundPage = () => {
                     </div>
                 </div>
             )}
-
             <div
                 className={`max-w-6xl mx-auto px-4 space-y-6 transition-all duration-500 ${isSettingOpen || isAddMoneyOpen ? 'blur-md scale-95 opacity-50' : ''}`}
             >
@@ -281,7 +284,6 @@ const FundPage = () => {
                     Tài chính minh bạch • Cuộc sống an nhàn
                 </p>
             </div>
-
             {/* MODAL ĐIỀU CHỈNH SỐ DƯ TRỰC TIẾP */}
             {isAddMoneyOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
@@ -333,7 +335,6 @@ const FundPage = () => {
                     </div>
                 </div>
             )}
-
             {/* MODAL CẤU HÌNH TỶ LỆ % */}
             {isSettingOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
