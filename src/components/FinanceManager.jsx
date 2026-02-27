@@ -29,7 +29,8 @@ const App = () => {
     const [selectedHistoryIndex, setSelectedHistoryIndex] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [sectionsOpen, setSectionsOpen] = useState({ income: true, expense: true });
-    const [isLoaded, setIsLoaded] = useState(false); // Quan trọng: Chống ghi đè khi khởi tạo
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [toast, setToast] = useState(null); // Quan trọng: Chống ghi đè khi khởi tạo
 
     // --- EFFECTS ---
 
@@ -115,7 +116,7 @@ const App = () => {
     };
 
     const syncToGoogle = async () => {
-        if (!config.scriptUrl) return window.alert('Vui lòng dán Web App URL!');
+        if (!config.scriptUrl) return showToast('Vui lòng dán Web App URL!', 'error');
         if (!window.confirm('Đồng bộ dữ liệu hiện tại lên Google Sheets?')) return;
 
         setIsLoading(true);
@@ -133,16 +134,16 @@ const App = () => {
                 body: JSON.stringify(payload),
             });
 
-            alert('Đã gửi yêu cầu đồng bộ Lịch sử!');
+            showToast('Đã gửi yêu cầu đồng bộ Lịch sử!');
         } catch (e) {
-            window.alert('Lỗi: ' + e.message);
+            showToast('Lỗi: ' + e.message, 'error');
         } finally {
             setIsLoading(false);
         }
     };
 
     async function loadFromGoogle() {
-        if (!config.scriptUrl) return window.alert('Vui lòng điền Web App URL!');
+        if (!config.scriptUrl) return showToast('Vui lòng điền Web App URL!', 'error');
         if (!window.confirm('Hành động này sẽ ghi đè dữ liệu trên máy bằng dữ liệu từ Sheets. Tiếp tục?')) return;
 
         setIsLoading(true);
@@ -151,9 +152,9 @@ const App = () => {
             const data = await res.json();
             localStorage.setItem('expense_detail_data', JSON.stringify(data));
             loadDataForMonth(selectedMonth, data);
-            window.alert('Đã tải dữ liệu từ Sheets thành công!');
+            showToast('Đã tải dữ liệu từ Sheets thành công!');
         } catch (e) {
-            alert('Lỗi tải dữ liệu: ' + e.message);
+            showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
         } finally {
             setIsLoading(false);
         }
@@ -168,8 +169,31 @@ const App = () => {
 
     const formatVND = (v) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v);
 
+    // Hàm show toast
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
+
     return (
         <div className="min-h-screen bg-slate-100 p-4 md:p-8 text-slate-800">
+            {/* TOAST NOTIFICATION */}
+            {toast && (
+                <div className={`fixed top-4 right-4 z-[110] p-4 rounded-2xl shadow-lg animate-in slide-in-from-top-2 duration-300 flex items-center gap-3 ${
+                    toast.type === 'success' 
+                        ? 'bg-emerald-500 text-white' 
+                        : 'bg-rose-500 text-white'
+                }`}>
+                    <div className={`w-2 h-2 rounded-full ${
+                        toast.type === 'success' ? 'bg-emerald-200' : 'bg-rose-200'
+                    } animate-pulse`}></div>
+                    <span className="font-bold">{toast.message}</span>
+                    <button onClick={() => setToast(null)} className="ml-2 hover:opacity-80">
+                        <X size={18} />
+                    </button>
+                </div>
+            )}
+
             {/* LOADING OVERLAY */}
             {isLoading && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md">

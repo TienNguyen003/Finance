@@ -1,10 +1,11 @@
-import { CloudUpload, RefreshCw } from 'lucide-react';
+import { CloudUpload, RefreshCw, X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 const DebtPage = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [debts, setDebts] = useState([]);
+    const [toast, setToast] = useState(null);
 
     // State cho Form
     const [formData, setFormData] = useState({
@@ -27,10 +28,16 @@ const DebtPage = () => {
 
     const formatVND = (amount) => new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
 
+    // Hàm show toast
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
+
     // 3. Hàm lưu khoản nợ
     const handleSaveDebt = () => {
         if (!formData.name || !formData.amount) {
-            alert('Vui lòng nhập đủ tên và số tiền!');
+            showToast('Vui lòng nhập đủ tên và số tiền!', 'error');
             return;
         }
 
@@ -72,9 +79,9 @@ const DebtPage = () => {
                 method: 'POST',
                 body: JSON.stringify(payload),
             });
-            alert(await response.text());
+            showToast('Đồng bộ thành công!');
         } catch (e) {
-            alert('Lỗi đồng bộ Vay/Nợ: ' + e.message);
+            showToast('Lỗi đồng bộ Vay/Nợ: ' + e.message, 'error');
         } finally {
             setIsLoading(false);
         }
@@ -90,9 +97,9 @@ const DebtPage = () => {
             localStorage.setItem('debts_list', JSON.stringify(data));
             const saved = localStorage.getItem('debts_list');
             if (saved) setDebts(JSON.parse(saved));
-            window.alert('Đã tải dữ liệu từ Sheets thành công!');
+            showToast('Đã tải dữ liệu từ Sheets thành công!');
         } catch (e) {
-            alert('Lỗi tải dữ liệu: ' + e.message);
+            showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
         } finally {
             setIsLoading(false);
         }
@@ -100,6 +107,23 @@ const DebtPage = () => {
 
     return (
         <div className="relative min-h-screen bg-slate-50/50 pb-24">
+            {/* TOAST NOTIFICATION */}
+            {toast && (
+                <div className={`fixed top-4 right-4 z-[110] p-4 rounded-2xl shadow-lg animate-in slide-in-from-top-2 duration-300 flex items-center gap-3 ${
+                    toast.type === 'success' 
+                        ? 'bg-emerald-500 text-white' 
+                        : 'bg-rose-500 text-white'
+                }`}>
+                    <div className={`w-2 h-2 rounded-full ${
+                        toast.type === 'success' ? 'bg-emerald-200' : 'bg-rose-200'
+                    } animate-pulse`}></div>
+                    <span className="font-bold">{toast.message}</span>
+                    <button onClick={() => setToast(null)} className="ml-2 hover:opacity-80">
+                        <X size={18} />
+                    </button>
+                </div>
+            )}
+
             {/* LOADING OVERLAY */}
             {isLoading && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
