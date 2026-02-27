@@ -54,7 +54,7 @@ const HomePage = ({ setPage }) => {
     }, []);
 
     return (
-        <div className="space-y-8 pt-10 pb-10 animate-in fade-in duration-500 max-w-6xl mx-auto">
+        <div className="space-y-8 p-5 animate-in fade-in duration-500 max-w-6xl mx-auto">
             {/* Header Chào hỏi */}
             <header className="flex justify-between items-center px-2">
                 <div>
@@ -94,7 +94,7 @@ const HomePage = ({ setPage }) => {
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Dịch vụ tài chính</p>
 
                 {/* Card: Quản lý Thu Chi */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Link to={config.routes.finance}>
                         <button
                             onClick={() => setPage('spending')}
@@ -133,7 +133,7 @@ const HomePage = ({ setPage }) => {
                     </Link>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Link to={config.routes.debt}>
                         {/* Card: Quản lý Nợ */}
                         <button

@@ -137,7 +137,7 @@ const FundPage = () => {
             <div
                 className={`max-w-6xl mx-auto px-4 space-y-6 transition-all duration-500 ${isSettingOpen || isAddMoneyOpen ? 'blur-md scale-95 opacity-50' : ''}`}
             >
-                <header className="pt-8 flex justify-between items-start">
+                <header className="pt-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                     <div>
                         <h2 className="text-3xl font-black text-slate-900 decoration-indigo-500">6 CHIẾC HŨ 🏺</h2>
                         <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
@@ -155,7 +155,7 @@ const FundPage = () => {
                             onClick={loadFunds}
                             className="flex items-center justify-center gap-2 bg-green-600 text-white p-4 rounded-2xl font-bold shadow-lg shadow-blue-100 active:scale-95 transition-transform"
                         >
-                            <RefreshCw size={20} /> Tải dữ liệu về
+                            <RefreshCw size={20} /> Tải về
                         </button>
                         <button
                             onClick={() => setIsSettingOpen(true)}
@@ -196,26 +196,29 @@ const FundPage = () => {
                     </div>
                 </div>
 
-                {/* Ô NẠP TIỀN THU NHẬP */}
-                <div className="bg-white p-3 rounded-[2.5rem] border border-slate-200 shadow-sm flex gap-2 items-center focus-within:ring-4 focus-within:ring-indigo-500/10 transition-all">
-                    <div className="pl-5 text-2xl animate-bounce">💵</div>
+                {/* Ô NẠP TIỀN - FIX LỖI TRÀN NÚT */}
+                <div className="bg-white p-1.5 md:p-3 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm flex items-center focus-within:ring-2 focus-within:ring-indigo-500/10 transition-all">
+                    <div className="pl-3 md:pl-5 text-lg md:text-2xl">💵</div>
+
                     <input
                         type="number"
-                        placeholder="Vừa có tiền về? Nhập vào đây..."
+                        inputMode="decimal"
+                        placeholder="Vừa có tiền về?"
                         value={inputAmount}
                         onChange={(e) => setInputAmount(e.target.value)}
-                        className="flex-1 bg-transparent p-4 outline-none font-black text-xl text-slate-900 placeholder:text-slate-300 placeholder:font-bold"
+                        className="flex-1 w-full min-w-0 bg-transparent p-3 md:p-4 outline-none font-black text-base md:text-xl text-slate-900 placeholder:text-slate-300"
                     />
+
                     <button
                         onClick={() => distributeMoney(inputAmount)}
-                        className="bg-slate-900 hover:bg-indigo-600 text-white px-10 py-5 rounded-[2rem] font-black shadow-lg active:scale-95 transition-all text-xs tracking-widest"
+                        className="bg-slate-900 hover:bg-indigo-600 text-white px-4 md:px-10 py-3 md:py-5 rounded-[1.2rem] md:rounded-[2rem] font-black shadow-lg active:scale-95 transition-all text-[10px] md:text-xs tracking-widest whitespace-nowrap"
                     >
-                        CHIA ĐỀU
+                        CHIA TIỀN
                     </button>
                 </div>
 
                 {/* GRID CÁC HŨ CHI TIẾT */}
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {Object.keys(configFund).map((key) => (
                         <div
                             key={key}
