@@ -251,14 +251,14 @@ const DebtPage = () => {
 
             {/* MODAL BOTTOM SHEET */}
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex sm:items-center justify-center p-0 sm:p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-0 p-4">
                     <div
                         className="absolute inset-0 bg-slate-900/40 backdrop-blur-[4px]"
                         onClick={() => setIsOpen(false)}
                     />
 
-                    <div className="relative w-full max-w-xl bg-white rounded-t-[3rem] sm:rounded-[3rem] p-8 shadow-2xl animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300 max-h-[95vh] overflow-y-auto">
-                        <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 sm:hidden" />
+                    <div className="relative w-full max-w-xl bg-white rounded-[3rem] p-8 shadow-2xl animate-in slide-in-from-bottom-full zoom-in-95 duration-300 max-h-[95vh] overflow-y-auto">
+                        <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 hidden" />
 
                         <h3 className="text-2xl font-black text-slate-900 mb-8 text-center tracking-tight">
                             Ghi Chép Khoản Nợ 📝
