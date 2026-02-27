@@ -8,7 +8,7 @@ import {
     RefreshCw,
     Settings,
     Wallet,
-    X
+    X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
@@ -110,7 +110,8 @@ const App = () => {
     const updateItem = (id, field, value, type) => {
         const setter = type === 'income' ? setIncomeItems : setExpenseItems;
         const items = type === 'income' ? incomeItems : expenseItems;
-        setter(items.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
+        const processedValue = field === 'amount' ? (value === '' ? 0 : Number(value)) : value;
+        setter(items.map((i) => (i.id === id ? { ...i, [field]: processedValue } : i)));
     };
 
     const syncToGoogle = async () => {
