@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { User, Wallet, ChevronRight, CreditCard, Layers, PieChart, Target } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import config from '~/config';
+import { getRandomQuote } from '~/assets/js/quote';
 
 // 2. Định nghĩa hàm formatVND
 const formatVND = (amount) => {
@@ -188,9 +189,7 @@ const HomePage = ({ setPage }) => {
             </div>
 
             <div className="p-6 bg-amber-50 rounded-[2rem] border border-amber-100 text-center">
-                <p className="text-[12px] italic text-amber-700 font-medium leading-relaxed">
-                    "Tiền không tự nhiên sinh ra, nó chỉ chuyển từ túi người này sang túi người khác."
-                </p>
+                <p className="text-[12px] italic text-amber-700 font-medium leading-relaxed">"{getRandomQuote()}"</p>
             </div>
         </div>
     );

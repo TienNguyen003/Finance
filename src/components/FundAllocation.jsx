@@ -118,7 +118,7 @@ const FundPage = () => {
     }
 
     return (
-        <div className="relative min-h-screen bg-slate-50/50 pb-10">
+        <div className="relative min-h-screen bg-slate-50/50 pb-5">
             {/* LOADING OVERLAY */}
             {isLoading && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
