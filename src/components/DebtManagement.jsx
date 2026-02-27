@@ -213,7 +213,7 @@ const DebtPage = () => {
 
             {/* MODAL BOTTOM SHEET */}
             {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+                <div className="fixed inset-0 z-50 flex sm:items-center justify-center p-0 sm:p-4">
                     <div
                         className="absolute inset-0 bg-slate-900/40 backdrop-blur-[4px]"
                         onClick={() => setIsOpen(false)}
