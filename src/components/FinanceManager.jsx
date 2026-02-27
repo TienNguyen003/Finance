@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
 import {
-    Settings,
-    Wallet,
-    History,
-    Plus,
-    X,
-    CloudUpload,
-    RefreshCw,
-    Eye,
     Calendar,
     ChevronDown,
     ChevronUp,
+    CloudUpload,
+    Eye,
+    History,
+    RefreshCw,
+    Settings,
+    Wallet,
+    X
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'expense_detail_data';
 
@@ -127,7 +126,7 @@ const App = () => {
         };
 
         try {
-            const response = await fetch(config.scriptUrl, {
+            await fetch(config.scriptUrl, {
                 method: 'POST',
                 mode: 'no-cors',
                 body: JSON.stringify(payload),
