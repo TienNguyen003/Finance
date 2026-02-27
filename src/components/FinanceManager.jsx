@@ -41,7 +41,7 @@ const App = () => {
 
         // Đánh dấu đã load xong sau một khoảng nghỉ ngắn
         setTimeout(() => setIsLoaded(true), 300);
-    }, []);
+    }, [selectedMonth]);
 
     // 2. AUTO-SAVE: Tự động cập nhật history và LocalStorage khi bạn nhập liệu
     useEffect(() => {
