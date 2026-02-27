@@ -137,7 +137,7 @@ const FundPage = () => {
     }
 
     return (
-        <div className="relative min-h-screen bg-slate-50/50 pb-5">
+        <div className="space-y-8 p-5 animate-in fade-in duration-500 max-w-6xl mx-auto">
             {' '}
             {/* TOAST NOTIFICATION */}
             {toast && (
@@ -172,9 +172,9 @@ const FundPage = () => {
                 </div>
             )}
             <div
-                className={`max-w-6xl mx-auto px-4 space-y-6 transition-all duration-500 ${isSettingOpen || isAddMoneyOpen ? 'blur-md scale-95 opacity-50' : ''}`}
+                className={`max-w-6xl mx-auto space-y-6 transition-all duration-500 ${isSettingOpen || isAddMoneyOpen ? 'blur-md scale-95 opacity-50' : ''}`}
             >
-                <header className="pt-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                <header className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                     <div>
                         <h2 className="text-3xl font-black text-slate-900 decoration-indigo-500">6 CHIẾC HŨ 🏺</h2>
                         <p className="text-[10px] text-slate-400 font-bold uppercase mt-1">
@@ -303,7 +303,7 @@ const FundPage = () => {
                         className="absolute inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity"
                         onClick={() => setIsAddMoneyOpen(false)}
                     />
-                    <div className="relative w-full max-w-sm bg-white rounded-[3rem] p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+                    <div className="relative w-full max-w-sm bg-white rounded-[3rem] p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
                         <div className="text-center mb-8">
                             <div
                                 className={`w-20 h-20 ${configFund[selectedFund]?.bg} rounded-full flex items-center justify-center mx-auto mb-4 text-4xl shadow-inner`}
@@ -323,7 +323,7 @@ const FundPage = () => {
                             autoFocus
                             id="editBalanceInput"
                             placeholder="Số tiền (Ví dụ: -50000)"
-                            className="w-full p-6 bg-slate-50 rounded-3xl mb-8 outline-none font-black text-2xl text-center border-2 border-transparent focus:border-indigo-500 transition-all shadow-inner"
+                            className="w-full p-4 bg-slate-50 rounded-3xl mb-8 outline-none text-xl text-center border-2 border-transparent focus:border-indigo-500 transition-all shadow-inner"
                         />
 
                         <div className="flex gap-3">

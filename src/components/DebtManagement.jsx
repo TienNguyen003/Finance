@@ -118,7 +118,7 @@ const DebtPage = () => {
     }
 
     return (
-        <div className="relative min-h-screen bg-slate-50/50 pb-24">
+        <div className="space-y-8 p-5 animate-in fade-in duration-500 max-w-6xl mx-auto">
             {/* TOAST NOTIFICATION */}
             {toast && (
                 <div
@@ -154,9 +154,9 @@ const DebtPage = () => {
             )}
 
             <div
-                className={`max-w-6xl mx-auto px-4 space-y-6 transition-all duration-500 ${isOpen ? 'blur-md scale-95' : ''}`}
+                className={`max-w-6xl mx-auto space-y-6 transition-all duration-500 ${isOpen ? 'blur-md scale-95' : ''}`}
             >
-                <header className="pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h2 className="text-3xl font-black text-slate-900 tracking-tight">Sổ Nợ 📖</h2>
                         <p className="text-sm text-slate-500 font-medium">Đừng để nợ nần làm rạn nứt tình anh em.</p>
