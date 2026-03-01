@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Trash2, CheckCircle, Circle, CloudUpload, RefreshCw, Calendar, X } from 'lucide-react';
+import { CheckCircle, Circle, CloudUpload, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 const ShoppingPage = () => {
     const [items, setItems] = useState([]);
@@ -53,7 +53,7 @@ const ShoppingPage = () => {
                     data: items,
                 }),
             });
-            const result = await response.text();
+            await response.text();
             showToast('Đã đồng bộ thành công!');
         } catch (e) {
             showToast('Lỗi đồng bộ: ' + e.message, 'error');
