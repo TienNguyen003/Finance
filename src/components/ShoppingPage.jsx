@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Trash2, CheckCircle, Circle, CloudUpload, RefreshCw, Calendar } from 'lucide-react';
+import { ShoppingCart, Plus, Trash2, CheckCircle, Circle, CloudUpload, RefreshCw, Calendar, X } from 'lucide-react';
 
 const ShoppingPage = () => {
     const [items, setItems] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [toast, setToast] = useState(null);
+    const [confirmDialog, setConfirmDialog] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         price: '',
@@ -23,11 +25,25 @@ const ShoppingPage = () => {
         localStorage.setItem('shopping_list', JSON.stringify(newItems));
     };
 
+    // Hàm show toast
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
+
+    // Hàm show confirm (thay window.confirm để tránh lỗi iOS)
+    const showConfirm = (message) => {
+        return new Promise((resolve) => {
+            setConfirmDialog({ message, resolve });
+        });
+    };
+
     // --- LOGIC GOOGLE SHEETS ---
     const getScriptUrl = () => localStorage.getItem('google_script_url');
 
     const syncToSheets = async () => {
-        if (!window.confirm('Đồng bộ danh sách mua sắm lên Google Sheets?')) return;
+        const confirmed = await showConfirm('Đồng bộ danh sách mua sắm lên Google Sheets?');
+        if (!confirmed) return;
         setIsLoading(true);
         try {
             const response = await fetch(getScriptUrl(), {
@@ -38,24 +54,25 @@ const ShoppingPage = () => {
                 }),
             });
             const result = await response.text();
-            alert('Đã đồng bộ: ' + result);
+            showToast('Đã đồng bộ thành công!');
         } catch (e) {
-            alert('Lỗi đồng bộ: ' + e.message);
+            showToast('Lỗi đồng bộ: ' + e.message, 'error');
         } finally {
             setIsLoading(false);
         }
     };
 
     const loadFromSheets = async () => {
-        if (!window.confirm('Tải dữ liệu từ Sheets về sẽ ghi đè máy này. Tiếp tục?')) return;
+        const confirmed = await showConfirm('Tải dữ liệu từ Sheets về sẽ ghi đè máy này. Tiếp tục?');
+        if (!confirmed) return;
         setIsLoading(true);
         try {
             const res = await fetch(`${getScriptUrl()}?action=get_shopping`);
             const data = await res.json();
             saveToLocal(data);
-            alert('Tải dữ liệu thành công!');
+            showToast('Tải dữ liệu thành công!');
         } catch (e) {
-            alert('Lỗi tải dữ liệu: ' + e.message);
+            showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
         } finally {
             setIsLoading(false);
         }
@@ -89,10 +106,37 @@ const ShoppingPage = () => {
 
     return (
         <div className="relative pb-24">
+            {/* TOAST NOTIFICATION */}
+            {toast && (
+                <div
+                    className={`fixed top-4 right-4 z-[110] p-4 rounded-2xl shadow-lg animate-in slide-in-from-top-2 duration-300 flex items-center gap-3 ${
+                        toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                    }`}
+                >
+                    <div
+                        className={`w-2 h-2 rounded-full ${
+                            toast.type === 'success' ? 'bg-emerald-200' : 'bg-rose-200'
+                        } animate-pulse`}
+                    ></div>
+                    <span className="font-bold">{toast.message}</span>
+                    <button onClick={() => setToast(null)} className="ml-2 hover:opacity-80">
+                        <X size={18} />
+                    </button>
+                </div>
+            )}
+
             {/* LOADING OVERLAY */}
             {isLoading && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-900/80 backdrop-blur-md text-white font-black">
-                    ĐANG XỬ LÝ...
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
+                    <div className="text-center space-y-4">
+                        <div className="relative">
+                            <div className="w-20 h-20 border-4 border-slate-600 border-t-white rounded-full animate-spin mx-auto" />
+                        </div>
+                        <div className="space-y-2">
+                            <p className="text-white font-black text-xl tracking-tight">Đang xử lý...</p>
+                            <p className="text-slate-300 text-sm font-medium">Vui lòng chờ trong giây lát</p>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -254,6 +298,43 @@ const ShoppingPage = () => {
                                     Lưu vào giỏ
                                 </button>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* CUSTOM CONFIRM DIALOG - FIX IOS ISSUE */}
+            {confirmDialog && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity" />
+                    <div className="relative w-full max-w-sm bg-white rounded-[3rem] p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+                        <div className="text-center mb-8">
+                            <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
+                                ⚠️
+                            </div>
+                            <p className="text-base font-bold text-slate-700 leading-relaxed">
+                                {confirmDialog.message}
+                            </p>
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    confirmDialog.resolve(false);
+                                    setConfirmDialog(null);
+                                }}
+                                className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-3xl font-black active:scale-95 transition-all uppercase text-xs tracking-widest"
+                            >
+                                HỦY
+                            </button>
+                            <button
+                                onClick={() => {
+                                    confirmDialog.resolve(true);
+                                    setConfirmDialog(null);
+                                }}
+                                className="flex-1 py-5 bg-indigo-600 text-white rounded-3xl font-black shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase text-xs tracking-widest"
+                            >
+                                XÁC NHẬN
+                            </button>
                         </div>
                     </div>
                 </div>
