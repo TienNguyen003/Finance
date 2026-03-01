@@ -5,6 +5,7 @@ import FinanceManager from '~/components/FinanceManager';
 import DebtManagement from '~/components/DebtManagement';
 import VisualReport from '~/components/VisualReport';
 import FundAllocation from '~/components/FundAllocation';
+import ShoppingPage from '~/components/ShoppingPage';
 
 // Public routes
 const publicRoutes = [
@@ -32,6 +33,10 @@ const publicRoutes = [
         path: config.routes.fund,
         component: FundAllocation,
     },
+    {
+        path: config.routes.shopping,
+        component: ShoppingPage,
+    }
 ];
 
 const privateRoutes = [];

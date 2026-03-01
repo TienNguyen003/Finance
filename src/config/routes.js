@@ -5,6 +5,7 @@ const routes = {
     debt: '/no-nan',
     report: '/bao-cao',
     fund: '/phan-bo-quy',
+    shopping: '/mua-sam',
 };
 
 export default routes;
