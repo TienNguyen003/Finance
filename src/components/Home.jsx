@@ -57,7 +57,7 @@ const HomePage = ({ setPage }) => {
         <div className="space-y-8 p-5 animate-in fade-in duration-500 max-w-6xl mx-auto">
             {/* Header Chào hỏi */}
             <header className="flex justify-between items-center px-2">
-                <div>
+                <div className='mb-5'>
                     <h1 className="text-3xl font-black text-slate-800">Chào! 👋</h1>
                     <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">
                         Hôm nay chi gì chưa?
@@ -71,7 +71,7 @@ const HomePage = ({ setPage }) => {
             {/* Card Tổng số dư */}
             <Link
                 to={config.routes.finance}
-                className="block bg-gradient-to-br from-indigo-600 to-violet-700 p-6 rounded-[2.5rem] text-white shadow-xl"
+                className="block bg-gradient-to-br from-indigo-600 to-violet-700 p-6 rounded-[2.5rem] text-white shadow-xl !mb-5"
             >
                 <div>
                     <p className="text-xs font-bold opacity-80 uppercase tracking-widest mb-2">Tổng số dư khả dụng</p>
@@ -90,7 +90,7 @@ const HomePage = ({ setPage }) => {
             </Link>
 
             {/* Hệ thống Menu Card */}
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-4 !mb-5">
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest px-2">Dịch vụ tài chính</p>
 
                 {/* Card: Quản lý Thu Chi */}

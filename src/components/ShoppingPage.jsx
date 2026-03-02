@@ -1,5 +1,5 @@
-import { CheckCircle, Circle, CloudUpload, Plus, RefreshCw, Trash2, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { CheckCircle, Circle, CloudUpload, GripVertical, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 
 const ShoppingPage = () => {
     const [items, setItems] = useState([]);
@@ -7,6 +7,11 @@ const ShoppingPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [toast, setToast] = useState(null);
     const [confirmDialog, setConfirmDialog] = useState(null);
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [categoryFilter, setCategoryFilter] = useState('all');
+    const [searchKeyword, setSearchKeyword] = useState('');
+    const [draggedId, setDraggedId] = useState(null);
+    const [dragOverId, setDragOverId] = useState(null);
     const [formData, setFormData] = useState({
         name: '',
         price: '',
@@ -102,6 +107,54 @@ const ShoppingPage = () => {
         saveToLocal(items.filter((item) => item.id !== id));
     };
 
+    const categoryOptions = useMemo(() => {
+        const allCategories = items
+            .map((item) => item.category)
+            .filter((category, index, array) => category && array.indexOf(category) === index);
+        return ['all', ...allCategories];
+    }, [items]);
+
+    const filteredItems = useMemo(() => {
+        const keyword = searchKeyword.trim().toLowerCase();
+        return items.filter((item) => {
+            const statusMatch =
+                statusFilter === 'all' ||
+                (statusFilter === 'bought' && item.bought) ||
+                (statusFilter === 'pending' && !item.bought);
+            const categoryMatch = categoryFilter === 'all' || item.category === categoryFilter;
+            const keywordMatch = !keyword || item.name.toLowerCase().includes(keyword);
+            return statusMatch && categoryMatch && keywordMatch;
+        });
+    }, [items, statusFilter, categoryFilter, searchKeyword]);
+
+    const handleDragStart = (id) => {
+        setDraggedId(id);
+    };
+
+    const handleDrop = (targetId) => {
+        if (!draggedId || draggedId === targetId) {
+            setDraggedId(null);
+            setDragOverId(null);
+            return;
+        }
+
+        const updated = [...items];
+        const fromIndex = updated.findIndex((item) => item.id === draggedId);
+        const toIndex = updated.findIndex((item) => item.id === targetId);
+
+        if (fromIndex === -1 || toIndex === -1) {
+            setDraggedId(null);
+            setDragOverId(null);
+            return;
+        }
+
+        const [movedItem] = updated.splice(fromIndex, 1);
+        updated.splice(toIndex, 0, movedItem);
+        saveToLocal(updated);
+        setDraggedId(null);
+        setDragOverId(null);
+    };
+
     const formatVND = (num) => new Intl.NumberFormat('vi-VN').format(num) + 'đ';
 
     return (
@@ -172,13 +225,93 @@ const ShoppingPage = () => {
                     <Plus size={24} /> Thêm món đồ mới
                 </button>
 
+                <div className="bg-white rounded-[2rem] p-4 border border-slate-100 shadow-sm space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <input
+                            type="text"
+                            placeholder="Tìm món đồ..."
+                            className="flex-1 p-3 bg-slate-50 rounded-xl outline-none border-2 border-transparent focus:border-slate-900 font-medium"
+                            value={searchKeyword}
+                            onChange={(e) => setSearchKeyword(e.target.value)}
+                        />
+                        <select
+                            className="p-3 bg-slate-50 rounded-xl outline-none border-2 border-transparent focus:border-slate-900 font-bold"
+                            value={categoryFilter}
+                            onChange={(e) => setCategoryFilter(e.target.value)}
+                        >
+                            <option value="all">Tất cả loại</option>
+                            {categoryOptions
+                                .filter((category) => category !== 'all')
+                                .map((category) => (
+                                    <option key={category} value={category}>
+                                        {category}
+                                    </option>
+                                ))}
+                        </select>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            onClick={() => setStatusFilter('all')}
+                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+                                statusFilter === 'all'
+                                    ? 'bg-slate-900 text-white'
+                                    : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                            }`}
+                        >
+                            Tất cả ({items.length})
+                        </button>
+                        <button
+                            onClick={() => setStatusFilter('pending')}
+                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+                                statusFilter === 'pending'
+                                    ? 'bg-amber-500 text-white'
+                                    : 'bg-amber-50 text-amber-600 hover:bg-amber-100'
+                            }`}
+                        >
+                            Chưa mua ({items.filter((item) => !item.bought).length})
+                        </button>
+                        <button
+                            onClick={() => setStatusFilter('bought')}
+                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${
+                                statusFilter === 'bought'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                            }`}
+                        >
+                            Đã mua ({items.filter((item) => item.bought).length})
+                        </button>
+                    </div>
+                </div>
+
                 {/* List */}
                 <div className="space-y-3">
-                    {items.map((item) => (
+                    {filteredItems.length === 0 && (
+                        <div className="bg-white p-6 rounded-[2rem] border border-dashed border-slate-200 text-center text-slate-400 font-bold">
+                            Không có món đồ nào theo bộ lọc hiện tại.
+                        </div>
+                    )}
+
+                    {filteredItems.map((item) => (
                         <div
                             key={item.id}
-                            className={`bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4 ${item.bought ? 'opacity-50' : ''}`}
+                            draggable
+                            onDragStart={() => handleDragStart(item.id)}
+                            onDragEnter={() => setDragOverId(item.id)}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDragEnd={() => {
+                                setDraggedId(null);
+                                setDragOverId(null);
+                            }}
+                            onDrop={() => handleDrop(item.id)}
+                            className={`bg-white p-5 rounded-[2rem] border shadow-sm flex items-center gap-4 transition-all ${
+                                item.bought ? 'opacity-50' : ''
+                            } ${dragOverId === item.id && draggedId !== item.id ? 'border-indigo-300' : 'border-slate-100'} ${
+                                draggedId === item.id ? 'scale-[0.99] opacity-70' : ''
+                            }`}
                         >
+                            <span className="text-slate-300 cursor-grab active:cursor-grabbing">
+                                <GripVertical size={18} />
+                            </span>
                             <button onClick={() => toggleBought(item.id)}>
                                 {item.bought ? (
                                     <CheckCircle size={24} className="text-emerald-500" />
@@ -192,6 +325,7 @@ const ShoppingPage = () => {
                                 </h4>
                                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-400">
                                     <span className="text-indigo-500">{formatVND(item.price)}</span>
+                                    {item.category && <span>• {item.category}</span>}
                                     {item.expectedDate && (
                                         <span>• HẠN: {new Date(item.expectedDate).toLocaleDateString('vi-VN')}</span>
                                     )}
