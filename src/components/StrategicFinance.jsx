@@ -1,3 +1,4 @@
+import { CloudUpload, RefreshCw, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'smart_savings_v5';
@@ -10,11 +11,10 @@ export default function StrategicFinance() {
     });
     const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState({ name: '', target: '', deadline: '', note: '' });
-
-    // useEffect(() => {
-    //     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
-    //     setGoals(saved);
-    // }, []);
+    const [toast, setToast] = useState(null);
+    const [confirmDialog, setConfirmDialog] = useState(null);
+    const [promptDialog, setPromptDialog] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
@@ -31,9 +31,29 @@ export default function StrategicFinance() {
         setForm({ name: '', target: '', deadline: '', note: '' });
     };
 
+    // Hàm show toast
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    };
+
+    // Hàm show confirm (thay window.confirm để tránh lỗi iOS)
+    const showConfirm = (message) => {
+        return new Promise((resolve) => {
+            setConfirmDialog({ message, resolve });
+        });
+    };
+
+    // Hàm show prompt (thay window.prompt để tránh lỗi iOS)
+    const showPrompt = (message, defaultValue = '') => {
+        return new Promise((resolve) => {
+            setPromptDialog({ message, defaultValue, resolve });
+        });
+    };
+
     const handleSubmit = () => {
         if (!form.name || form.target <= 0 || !form.deadline) {
-            alert('Vui lòng nhập đầy đủ thông tin mục tiêu!');
+            showToast('Vui lòng nhập đầy đủ thông tin mục tiêu!', 'error');
             return;
         }
 
@@ -56,8 +76,8 @@ export default function StrategicFinance() {
         clearForm();
     };
 
-    const updateProgress = (id) => {
-        const amount = prompt('Số tiền giao dịch (Nhập số âm để rút):');
+    const updateProgress = async (id) => {
+        const amount = await showPrompt('Số tiền giao dịch (Nhập số âm để rút):');
         if (amount !== null && !isNaN(amount) && amount !== '') {
             setGoals((prev) =>
                 prev.map((g) => {
@@ -75,8 +95,80 @@ export default function StrategicFinance() {
     const totalTarget = goals.reduce((sum, g) => sum + g.target, 0);
     const overallPercent = totalTarget > 0 ? (totalValue / totalTarget) * 100 : 0;
 
+    const getScriptUrl = () => localStorage.getItem('google_script_url');
+
+    const syncToSheets = async () => {
+        const confirmed = await showConfirm('Đồng bộ dữ liệu mục tiêu lên Google Sheets?');
+        if (!confirmed) return;
+
+        setIsLoading(true);
+        try {
+            const res = await fetch(getScriptUrl(), {
+                method: 'POST',
+                body: JSON.stringify({ action: 'sync_goals', data: goals }),
+            });
+            const msg = await res.text();
+            showToast('Đồng bộ thành công!');
+        } catch (e) {
+            showToast('Lỗi đồng bộ: ' + e.message, 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const loadFromSheets = async () => {
+        const confirmed = await showConfirm('Tải dữ liệu từ Sheets sẽ ghi đè dữ liệu hiện tại. Tiếp tục?');
+        if (!confirmed) return;
+
+        setIsLoading(true);
+        try {
+            const res = await fetch(`${getScriptUrl()}?action=get_goals`);
+            const data = await res.json();
+            setGoals(data);
+            showToast('Tải dữ liệu thành công!');
+        } catch (e) {
+            showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-[#f8fafc] text-slate-900 p-4 md:p-8">
+            {/* LOADING OVERLAY */}
+            {isLoading && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/80 backdrop-blur-md">
+                    <div className="text-center space-y-4">
+                        <div className="relative">
+                            <div className="w-20 h-20 border-4 border-slate-600 border-t-white rounded-full animate-spin mx-auto" />
+                        </div>
+                        <div className="space-y-2">
+                            <p className="text-white font-black text-xl tracking-tight">Đang xử lý...</p>
+                            <p className="text-slate-300 text-sm font-medium">Vui lòng chờ trong giây lát</p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* TOAST NOTIFICATION */}
+            {toast && (
+                <div
+                    className={`fixed top-4 right-4 z-[110] p-4 rounded-2xl shadow-lg animate-in slide-in-from-top-2 duration-300 flex items-center gap-3 ${
+                        toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                    }`}
+                >
+                    <div
+                        className={`w-2 h-2 rounded-full ${
+                            toast.type === 'success' ? 'bg-emerald-200' : 'bg-rose-200'
+                        } animate-pulse`}
+                    ></div>
+                    <span className="font-bold">{toast.message}</span>
+                    <button onClick={() => setToast(null)} className="ml-2 hover:opacity-80">
+                        <X size={18} />
+                    </button>
+                </div>
+            )}
+
             <div className="max-w-5xl mx-auto">
                 {/* --- HERO SECTION --- */}
                 <header className="relative overflow-hidden bg-indigo-700 rounded-[2rem] p-8 mb-8 text-white shadow-2xl shadow-indigo-200">
@@ -96,6 +188,20 @@ export default function StrategicFinance() {
                                     style={{ width: `${overallPercent}%` }}
                                 />
                             </div>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <button
+                                onClick={syncToSheets}
+                                className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all"
+                            >
+                                <CloudUpload size={20} /> Đồng bộ
+                            </button>
+                            <button
+                                onClick={loadFromSheets}
+                                className="flex items-center justify-center gap-2 p-3 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all"
+                            >
+                                <RefreshCw size={20} /> Tải về
+                            </button>
                         </div>
                     </div>
                     {/* Decorative Circle */}
@@ -283,6 +389,89 @@ export default function StrategicFinance() {
                     )}
                 </div>
             </div>
+
+            {/* CUSTOM CONFIRM DIALOG - FIX IOS ISSUE */}
+            {confirmDialog && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity" />
+                    <div className="relative w-full max-w-sm bg-white rounded-[3rem] p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+                        <div className="text-center mb-8">
+                            <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
+                                ⚠️
+                            </div>
+                            <p className="text-base font-bold text-slate-700 leading-relaxed">
+                                {confirmDialog.message}
+                            </p>
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    confirmDialog.resolve(false);
+                                    setConfirmDialog(null);
+                                }}
+                                className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-3xl font-black active:scale-95 transition-all uppercase text-xs tracking-widest"
+                            >
+                                HỦY
+                            </button>
+                            <button
+                                onClick={() => {
+                                    confirmDialog.resolve(true);
+                                    setConfirmDialog(null);
+                                }}
+                                className="flex-1 py-5 bg-indigo-600 text-white rounded-3xl font-black shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase text-xs tracking-widest"
+                            >
+                                XÁC NHẬN
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* CUSTOM PROMPT DIALOG - FIX IOS ISSUE */}
+            {promptDialog && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity" />
+                    <div className="relative w-full max-w-sm bg-white rounded-[3rem] p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+                        <div className="text-center mb-8">
+                            <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
+                                💰
+                            </div>
+                            <p className="text-base font-bold text-slate-700 leading-relaxed mb-4">
+                                {promptDialog.message}
+                            </p>
+                            <input
+                                type="number"
+                                id="promptInput"
+                                autoFocus
+                                defaultValue={promptDialog.defaultValue}
+                                placeholder="Nhập số tiền..."
+                                className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-indigo-500 outline-none font-black text-xl text-center"
+                            />
+                        </div>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    promptDialog.resolve(null);
+                                    setPromptDialog(null);
+                                }}
+                                className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-3xl font-black active:scale-95 transition-all uppercase text-xs tracking-widest"
+                            >
+                                HỦY
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const value = document.getElementById('promptInput').value;
+                                    promptDialog.resolve(value);
+                                    setPromptDialog(null);
+                                }}
+                                className="flex-1 py-5 bg-indigo-600 text-white rounded-3xl font-black shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase text-xs tracking-widest"
+                            >
+                                XÁC NHẬN
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
