@@ -344,7 +344,7 @@ const DebtPage = () => {
 
             {/* CUSTOM CONFIRM DIALOG - FIX IOS ISSUE */}
             {confirmDialog && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-6">
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-6" style={{marginTop: 0}}>
                     <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity" />
                     <div className="relative w-full max-w-sm bg-white rounded-[3rem] p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
                         <div className="text-center mb-8">

@@ -152,15 +152,15 @@ const ShoppingPage = () => {
                     <div className="flex gap-2">
                         <button
                             onClick={syncToSheets}
-                            className="p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all"
+                            className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all"
                         >
-                            <CloudUpload size={20} />
+                            <CloudUpload size={20} /> Đồng bộ
                         </button>
                         <button
                             onClick={loadFromSheets}
-                            className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all"
+                            className="flex items-center justify-center gap-2 p-3 bg-emerald-50 text-emerald-600 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all"
                         >
-                            <RefreshCw size={20} />
+                            <RefreshCw size={20} /> Tải về
                         </button>
                     </div>
                 </header>
@@ -192,7 +192,9 @@ const ShoppingPage = () => {
                                 </h4>
                                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-400">
                                     <span className="text-indigo-500">{formatVND(item.price)}</span>
-                                    {item.expectedDate && <span>• HẠN: {item.expectedDate}</span>}
+                                    {item.expectedDate && (
+                                        <span>• HẠN: {new Date(item.expectedDate).toLocaleDateString('vi-VN')}</span>
+                                    )}
                                 </div>
                             </div>
                             <button
@@ -216,6 +218,9 @@ const ShoppingPage = () => {
                     <div className="relative w-full max-w-xl bg-white rounded-[2.5rem] p-8 animate-in slide-in-from-bottom duration-300">
                         <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-8" />
                         <div className="space-y-5">
+                            <label className="text-[11px] font-black text-slate-500 uppercase ml-2 tracking-widest">
+                                Tên món đồ
+                            </label>
                             <input
                                 className="w-full p-4 bg-slate-50 rounded-2xl outline-none border-2 border-transparent focus:border-slate-900 font-bold"
                                 placeholder="Tên món đồ..."
@@ -225,7 +230,7 @@ const ShoppingPage = () => {
                             {/* Grid chia 2 cho Giá và Ngày */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-2 tracking-widest">
                                         Giá dự kiến
                                     </label>
                                     <input
@@ -238,7 +243,7 @@ const ShoppingPage = () => {
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">
+                                    <label className="text-[11px] font-black text-slate-500 uppercase ml-2 tracking-widest">
                                         Ngày mua
                                     </label>
                                     <input
@@ -252,7 +257,7 @@ const ShoppingPage = () => {
 
                             {/* Ô chọn Loại (Cần thiết/Gia đình/Sở thích) - ĐÃ QUAY TRỞ LẠI */}
                             <div className="space-y-1">
-                                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">
+                                <label className="text-[11px] font-black text-slate-500 uppercase ml-2 tracking-widest">
                                     Phân loại món đồ
                                 </label>
                                 <div className="relative">

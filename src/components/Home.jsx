@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { User, Wallet, ChevronRight, CreditCard, Layers, PieChart, Target } from 'lucide-react';
+import { User, Wallet, ChevronRight, CreditCard, Layers, PieChart, Target, ShoppingCart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import config from '~/config';
 import { getRandomQuote } from '~/assets/js/quote';
@@ -167,25 +167,42 @@ const HomePage = ({ setPage }) => {
                     </Link>
                 </div>
 
-                {/* Card: Báo cáo Analytics */}
-                <Link to={config.routes.report}>
-                    <button
-                        onClick={() => setPage('analytics')}
-                        className="w-full bg-slate-900 p-6 rounded-[2.5rem] text-left relative overflow-hidden group shadow-lg"
-                    >
-                        <div className="relative z-10 flex justify-between items-center">
-                            <div>
-                                <h3 className="font-black text-white text-lg">Báo cáo & Phân tích</h3>
-                                <p className="text-xs text-slate-400 font-medium mt-1">Xem biểu đồ tiền tệ</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Link to={config.routes.shopping}>
+                        <button
+                            onClick={() => setPage('shopping')}
+                            className="w-full bg-emerald-50 p-6 rounded-[2.5rem] border border-emerald-100 text-left hover:bg-emerald-100 transition-colors shadow-sm flex items-center gap-4"
+                        >
+                            <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-emerald-500 shadow-sm">
+                                <ShoppingCart size={20} />
                             </div>
-                            <PieChart
-                                className="text-emerald-400 group-hover:rotate-12 transition-transform"
-                                size={32}
-                            />
-                        </div>
-                        <div className="absolute bottom-0 right-0 w-24 h-24 bg-emerald-500/10 -mb-8 -mr-8 rounded-full"></div>
-                    </button>
-                </Link>
+                            <div>
+                                <h3 className="font-black text-emerald-900 leading-tight">Quản lý đồ muốn mua</h3>
+                                <p className="text-[10px] text-emerald-600/70 font-bold uppercase mt-1">Wishlist</p>
+                            </div>
+                        </button>
+                    </Link>
+
+                    {/* Card: Báo cáo Analytics */}
+                    <Link to={config.routes.report}>
+                        <button
+                            onClick={() => setPage('analytics')}
+                            className="w-full bg-slate-900 p-6 rounded-[2.5rem] text-left relative overflow-hidden group shadow-lg"
+                        >
+                            <div className="relative z-10 flex justify-between items-center">
+                                <div>
+                                    <h3 className="font-black text-white text-lg">Báo cáo & Phân tích</h3>
+                                    <p className="text-xs text-slate-400 font-medium mt-1">Xem biểu đồ tiền tệ</p>
+                                </div>
+                                <PieChart
+                                    className="text-emerald-400 group-hover:rotate-12 transition-transform"
+                                    size={32}
+                                />
+                            </div>
+                            <div className="absolute bottom-0 right-0 w-24 h-24 bg-emerald-500/10 -mb-8 -mr-8 rounded-full"></div>
+                        </button>
+                    </Link>
+                </div>
             </div>
 
             <div className="p-6 bg-amber-50 rounded-[2rem] border border-amber-100 text-center">

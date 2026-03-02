@@ -298,7 +298,7 @@ const FundPage = () => {
             </div>
             {/* MODAL ĐIỀU CHỈNH SỐ DƯ TRỰC TIẾP */}
             {isAddMoneyOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6" style={{marginTop: 0}}>
                     <div
                         className="absolute inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity"
                         onClick={() => setIsAddMoneyOpen(false)}
@@ -349,7 +349,7 @@ const FundPage = () => {
             )}
             {/* MODAL CẤU HÌNH TỶ LỆ % */}
             {isSettingOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6" style={{marginTop: 0}}>
                     <div
                         className="absolute inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity"
                         onClick={() => setIsSettingOpen(false)}

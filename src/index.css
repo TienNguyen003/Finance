@@ -3,6 +3,10 @@
   font-family: "Roboto Slab";
 }
 
+.space-y-8 > :not([hidden]) ~ :not([hidden]){
+  margin-top: 0 !important;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
