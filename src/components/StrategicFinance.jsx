@@ -107,7 +107,7 @@ export default function StrategicFinance() {
                 method: 'POST',
                 body: JSON.stringify({ action: 'sync_goals', data: goals }),
             });
-            const msg = await res.text();
+            await res.text();
             showToast('Đồng bộ thành công!');
         } catch (e) {
             showToast('Lỗi đồng bộ: ' + e.message, 'error');
