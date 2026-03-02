@@ -12,6 +12,8 @@ const ShoppingPage = () => {
     const [searchKeyword, setSearchKeyword] = useState('');
     const [draggedId, setDraggedId] = useState(null);
     const [dragOverId, setDragOverId] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
     const [formData, setFormData] = useState({
         name: '',
         price: '',
@@ -126,6 +128,17 @@ const ShoppingPage = () => {
             return statusMatch && categoryMatch && keywordMatch;
         });
     }, [items, statusFilter, categoryFilter, searchKeyword]);
+
+    const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+    const paginatedItems = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredItems.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredItems, currentPage, itemsPerPage]);
+
+    // Reset về trang 1 khi filter thay đổi
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [statusFilter, categoryFilter, searchKeyword]);
 
     const handleDragStart = (id) => {
         setDraggedId(id);
@@ -291,7 +304,7 @@ const ShoppingPage = () => {
                         </div>
                     )}
 
-                    {filteredItems.map((item) => (
+                    {paginatedItems.map((item) => (
                         <div
                             key={item.id}
                             draggable
@@ -339,6 +352,41 @@ const ShoppingPage = () => {
                             </button>
                         </div>
                     ))}
+
+                    {/* PAGINATION */}
+                    {filteredItems.length > itemsPerPage && (
+                        <div className="bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm">
+                            <div className="flex items-center justify-between gap-4">
+                                <div className="text-sm font-bold text-slate-500">
+                                    Đang xem{' '}
+                                    <span className="text-slate-900">
+                                        {(currentPage - 1) * itemsPerPage + 1}-
+                                        {Math.min(currentPage * itemsPerPage, filteredItems.length)}
+                                    </span>{' '}
+                                    của <span className="text-slate-900">{filteredItems.length}</span> món
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                                        disabled={currentPage === 1}
+                                        className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-black disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 transition-all text-sm"
+                                    >
+                                        ← Trước
+                                    </button>
+                                    <div className="px-3 py-2 bg-slate-900 text-white rounded-xl font-black text-sm min-w-[60px] text-center">
+                                        {currentPage}/{totalPages}
+                                    </div>
+                                    <button
+                                        onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                                        disabled={currentPage === totalPages}
+                                        className="px-4 py-2 bg-slate-100 text-slate-600 rounded-xl font-black disabled:opacity-30 disabled:cursor-not-allowed hover:bg-slate-200 transition-all text-sm"
+                                    >
+                                        Sau →
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

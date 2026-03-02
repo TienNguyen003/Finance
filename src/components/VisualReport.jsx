@@ -78,7 +78,7 @@ const AnalyticsPage = () => {
     return (
         <div className="space-y-6 pb-32 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto px-4">
             {/* BỘ CHỌN THÁNG - Dạng Tab cuộn ngang */}
-            <div className="pt-8 overflow-x-auto no-scrollbar flex gap-2 sticky top-0 bg-slate-50/80 backdrop-blur-md z-30 py-4">
+            <div className="pt-8 overflow-x-auto no-scrollbar flex gap-2 sticky top-0 z-30 py-4">
                 {allData.map((data, index) => (
                     <button
                         key={data.date}
