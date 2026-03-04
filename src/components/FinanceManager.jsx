@@ -156,6 +156,7 @@ const App = () => {
             const res = await fetch(config.scriptUrl + '?action=get_history');
             const data = await res.json();
             localStorage.setItem('expense_detail_data', JSON.stringify(data));
+            setHistory(data);
             loadDataForMonth(selectedMonth, data);
             showToast('Đã tải dữ liệu từ Sheets thành công!');
         } catch (e) {
