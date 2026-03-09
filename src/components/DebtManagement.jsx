@@ -10,6 +10,7 @@ const DebtPage = () => {
 
     // State cho Form
     const [formData, setFormData] = useState({
+        title: '',
         name: '',
         amount: '',
         date: '',
@@ -61,7 +62,7 @@ const DebtPage = () => {
         localStorage.setItem('debts_list', JSON.stringify(updatedDebts));
 
         // Reset & Close
-        setFormData({ name: '', amount: '', date: '', type: 'debt' });
+        setFormData({ title: '', name: '', amount: '', date: '', type: 'debt' });
         setIsOpen(false);
     };
 
@@ -224,6 +225,7 @@ const DebtPage = () => {
                                     </div>
                                     <div>
                                         <p className="font-bold text-slate-900">{item.name}</p>
+                                        <p className="text-xs text-slate-500">{item.title}</p>
                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
                                             {item.date ? `Hạn: ${item.date}` : 'Không có hạn trả'}
                                         </p>
@@ -279,6 +281,18 @@ const DebtPage = () => {
                                 >
                                     Cho vay
                                 </button>
+                            </div>
+
+                            {/* Title Input - MỚI THÊM */}
+                            <div className="space-y-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Nội dung nợ (Nợ gì?)</label>
+                                <input
+                                    type="text"
+                                    value={formData.title}
+                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                    placeholder="Vd: Tiền nhậu, Mượn mua iPhone..."
+                                    className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent focus:border-slate-900 focus:bg-white outline-none font-bold transition-all text-sm"
+                                />
                             </div>
 
                             {/* Name Input */}
