@@ -259,7 +259,7 @@ const DebtPage = () => {
                         onClick={() => setIsOpen(false)}
                     />
 
-                    <div className="relative w-full max-w-xl bg-white rounded-[3rem] p-8 shadow-2xl animate-in slide-in-from-bottom-full zoom-in-95 duration-300 max-h-[95vh] overflow-y-auto">
+                    <div className="relative w-full max-w-xl bg-white rounded-[3rem] p-8 shadow-2xl animate-in slide-in-from-bottom-full zoom-in-95 duration-300 max-h-[95vh]">
                         <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-6 hidden" />
 
                         <h3 className="text-2xl font-black text-slate-900 mb-8 text-center tracking-tight">
