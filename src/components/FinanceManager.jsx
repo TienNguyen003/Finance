@@ -14,6 +14,35 @@ import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'expense_detail_data';
 
+const createItemId = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+};
+
+const ensureUniqueItemIds = (items = []) => {
+    const seen = new Set();
+
+    return items.map((item) => {
+        let nextId = item?.id;
+        if (nextId === undefined || nextId === null || seen.has(String(nextId))) {
+            nextId = createItemId();
+        }
+
+        seen.add(String(nextId));
+        return { ...item, id: nextId };
+    });
+};
+
+const normalizeHistoryData = (historyData = []) => {
+    return historyData.map((entry) => ({
+        ...entry,
+        incomeItems: ensureUniqueItemIds(Array.isArray(entry?.incomeItems) ? entry.incomeItems : []),
+        items: ensureUniqueItemIds(Array.isArray(entry?.items) ? entry.items : []),
+    }));
+};
+
 const App = () => {
     // --- STATES ---
     const [config, setConfig] = useState({
@@ -37,7 +66,8 @@ const App = () => {
 
     // 1. Load dữ liệu từ LocalStorage khi mở app
     useEffect(() => {
-        const savedData = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        const savedData = normalizeHistoryData(JSON.parse(localStorage.getItem(STORAGE_KEY)) || []);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
         setHistory(savedData);
         loadDataForMonth(selectedMonth, savedData);
 
@@ -78,17 +108,22 @@ const App = () => {
     const loadDataForMonth = (month, currentHistory) => {
         const data = currentHistory.find((item) => item.date === month);
         if (data) {
+            const safeIncomeItems = ensureUniqueItemIds(data.incomeItems || []);
+            const safeExpenseItems = ensureUniqueItemIds(data.items || []);
+
             setIncomeItems(
-                data.incomeItems.length
-                    ? data.incomeItems
-                    : [{ id: Date.now(), name: '', amount: '', date: `${month}-01` }],
+                safeIncomeItems.length
+                    ? safeIncomeItems
+                    : [{ id: createItemId(), name: '', amount: '', date: `${month}-01` }],
             );
             setExpenseItems(
-                data.items.length ? data.items : [{ id: Date.now() + 1, name: '', amount: '', date: `${month}-01` }],
+                safeExpenseItems.length
+                    ? safeExpenseItems
+                    : [{ id: createItemId(), name: '', amount: '', date: `${month}-01` }],
             );
         } else {
-            setIncomeItems([{ id: Date.now(), name: 'Lương', amount: '', date: `${month}-01` }]);
-            setExpenseItems([{ id: Date.now() + 1, name: '', amount: '', date: `${month}-01` }]);
+            setIncomeItems([{ id: createItemId(), name: 'Lương', amount: '', date: `${month}-01` }]);
+            setExpenseItems([{ id: createItemId(), name: '', amount: '', date: `${month}-01` }]);
         }
     };
 
@@ -99,7 +134,7 @@ const App = () => {
     };
 
     const addItem = (type) => {
-        const newItem = { id: Date.now(), name: '', amount: '', date: `${selectedMonth}-01` };
+        const newItem = { id: createItemId(), name: '', amount: '', date: `${selectedMonth}-01` };
         if (type === 'income') setIncomeItems([...incomeItems, newItem]);
         else setExpenseItems([...expenseItems, newItem]);
     };
@@ -154,7 +189,7 @@ const App = () => {
         setIsLoading(true);
         try {
             const res = await fetch(config.scriptUrl + '?action=get_history');
-            const data = await res.json();
+            const data = normalizeHistoryData(await res.json());
             localStorage.setItem('expense_detail_data', JSON.stringify(data));
             setHistory(data);
             loadDataForMonth(selectedMonth, data);
