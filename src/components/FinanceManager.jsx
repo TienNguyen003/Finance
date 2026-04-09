@@ -75,6 +75,10 @@ const App = () => {
         setTimeout(() => setIsLoaded(true), 300);
     }, [selectedMonth]);
 
+    useEffect(() => {
+        loadFromGoogle({ requireConfirm: false, silent: true });
+    }, []);
+
     // 2. AUTO-SAVE: Tự động cập nhật history và LocalStorage khi bạn nhập liệu
     useEffect(() => {
         if (!isLoaded) return; // Nếu chưa load xong dữ liệu cũ, không được chạy logic này
@@ -153,8 +157,6 @@ const App = () => {
 
     const syncToGoogle = async () => {
         if (!config.scriptUrl) return showToast('Vui lòng dán Web App URL!', 'error');
-        const confirmed = await showConfirm('Đồng bộ dữ liệu hiện tại lên Google Sheets?');
-        if (!confirmed) return;
 
         setIsLoading(true);
         const historyData = JSON.parse(localStorage.getItem('expense_detail_data')) || [];
@@ -171,7 +173,7 @@ const App = () => {
                 body: JSON.stringify(payload),
             });
 
-            showToast('Đã gửi yêu cầu đồng bộ Lịch sử!');
+            showToast('Đã lưu và đồng bộ thành công!');
         } catch (e) {
             showToast('Lỗi: ' + e.message, 'error');
         } finally {
@@ -179,12 +181,21 @@ const App = () => {
         }
     };
 
-    async function loadFromGoogle() {
-        if (!config.scriptUrl) return showToast('Vui lòng điền Web App URL!', 'error');
-        const confirmed = await showConfirm(
-            'Hành động này sẽ ghi đè dữ liệu trên máy bằng dữ liệu từ Sheets. Tiếp tục?',
-        );
-        if (!confirmed) return;
+    async function loadFromGoogle(options = {}) {
+        const { requireConfirm = true, silent = false } = options;
+        if (!config.scriptUrl) {
+            if (!silent) {
+                showToast('Vui lòng điền Web App URL!', 'error');
+            }
+            return;
+        }
+
+        if (requireConfirm) {
+            const confirmed = await showConfirm(
+                'Hành động này sẽ ghi đè dữ liệu trên máy bằng dữ liệu từ Sheets. Tiếp tục?',
+            );
+            if (!confirmed) return;
+        }
 
         setIsLoading(true);
         try {
@@ -193,9 +204,13 @@ const App = () => {
             localStorage.setItem('expense_detail_data', JSON.stringify(data));
             setHistory(data);
             loadDataForMonth(selectedMonth, data);
-            showToast('Đã tải dữ liệu từ Sheets thành công!');
+            if (!silent) {
+                showToast('Đã tải dữ liệu từ Sheets thành công!');
+            }
         } catch (e) {
-            showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+            if (!silent) {
+                showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -432,7 +447,7 @@ const App = () => {
                             onClick={syncToGoogle}
                             className="flex items-center justify-center gap-2 bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-lg shadow-blue-100 hover:scale-95 transition-transform"
                         >
-                            <CloudUpload size={20} /> Đồng bộ
+                            <CloudUpload size={20} /> Lưu
                         </button>
                         <button
                             onClick={() => setActiveModal('sheet')}

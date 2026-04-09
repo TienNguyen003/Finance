@@ -20,6 +20,10 @@ export default function StrategicFinance() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
     }, [goals]);
 
+    useEffect(() => {
+        loadFromSheets({ requireConfirm: false, silent: true });
+    }, []);
+
     const formatMoney = (amount) =>
         new Intl.NumberFormat('vi-VN', {
             style: 'currency',
@@ -51,19 +55,18 @@ export default function StrategicFinance() {
         });
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         if (!form.name || form.target <= 0 || !form.deadline) {
             showToast('Vui lòng nhập đầy đủ thông tin mục tiêu!', 'error');
             return;
         }
 
+        let nextGoals = goals;
         if (editingId) {
-            setGoals((prev) =>
-                prev.map((g) => (g.id === editingId ? { ...g, ...form, target: Number(form.target) } : g)),
-            );
+            nextGoals = goals.map((g) => (g.id === editingId ? { ...g, ...form, target: Number(form.target) } : g));
         } else {
-            setGoals((prev) => [
-                ...prev,
+            nextGoals = [
+                ...goals,
                 {
                     id: Date.now(),
                     ...form,
@@ -71,8 +74,11 @@ export default function StrategicFinance() {
                     current: 0,
                     note: form.note || 'Hành trình vạn dặm bắt đầu từ một bước chân.',
                 },
-            ]);
+            ];
         }
+
+        setGoals(nextGoals);
+        await syncToSheets(nextGoals);
         clearForm();
     };
 
@@ -97,18 +103,24 @@ export default function StrategicFinance() {
 
     const getScriptUrl = () => localStorage.getItem('google_script_url');
 
-    const syncToSheets = async () => {
-        const confirmed = await showConfirm('Đồng bộ dữ liệu mục tiêu lên Google Sheets?');
-        if (!confirmed) return;
+    const syncToSheets = async (nextGoals = goals, options = {}) => {
+        const { showSuccessToast = true } = options;
+        const scriptUrl = getScriptUrl();
+        if (!scriptUrl) {
+            showToast('Vui lòng cấu hình Google Script Web App URL trước!', 'error');
+            return;
+        }
 
         setIsLoading(true);
         try {
-            const res = await fetch(getScriptUrl(), {
+            const res = await fetch(scriptUrl, {
                 method: 'POST',
-                body: JSON.stringify({ action: 'sync_goals', data: goals }),
+                body: JSON.stringify({ action: 'sync_goals', data: nextGoals }),
             });
             await res.text();
-            showToast('Đồng bộ thành công!');
+            if (showSuccessToast) {
+                showToast('Đã lưu và đồng bộ thành công!');
+            }
         } catch (e) {
             showToast('Lỗi đồng bộ: ' + e.message, 'error');
         } finally {
@@ -116,18 +128,28 @@ export default function StrategicFinance() {
         }
     };
 
-    const loadFromSheets = async () => {
-        const confirmed = await showConfirm('Tải dữ liệu từ Sheets sẽ ghi đè dữ liệu hiện tại. Tiếp tục?');
-        if (!confirmed) return;
+    const loadFromSheets = async (options = {}) => {
+        const { requireConfirm = true, silent = false } = options;
+        const scriptUrl = getScriptUrl();
+        if (!scriptUrl) return;
+
+        if (requireConfirm) {
+            const confirmed = await showConfirm('Tải dữ liệu từ Sheets sẽ ghi đè dữ liệu hiện tại. Tiếp tục?');
+            if (!confirmed) return;
+        }
 
         setIsLoading(true);
         try {
-            const res = await fetch(`${getScriptUrl()}?action=get_goals`);
+            const res = await fetch(`${scriptUrl}?action=get_goals`);
             const data = await res.json();
             setGoals(data);
-            showToast('Tải dữ liệu thành công!');
+            if (!silent) {
+                showToast('Tải dữ liệu thành công!');
+            }
         } catch (e) {
-            showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+            if (!silent) {
+                showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -194,7 +216,7 @@ export default function StrategicFinance() {
                                 onClick={syncToSheets}
                                 className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all"
                             >
-                                <CloudUpload size={20} /> Đồng bộ
+                                <CloudUpload size={20} /> Lưu
                             </button>
                             <button
                                 onClick={loadFromSheets}

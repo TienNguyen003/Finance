@@ -25,6 +25,7 @@ const ShoppingPage = () => {
     useEffect(() => {
         const saved = localStorage.getItem('shopping_list');
         if (saved) setItems(JSON.parse(saved));
+        loadFromSheets({ requireConfirm: false, silent: true });
     }, []);
 
     const saveToLocal = (newItems) => {
@@ -48,20 +49,26 @@ const ShoppingPage = () => {
     // --- LOGIC GOOGLE SHEETS ---
     const getScriptUrl = () => localStorage.getItem('google_script_url');
 
-    const syncToSheets = async () => {
-        const confirmed = await showConfirm('Đồng bộ danh sách mua sắm lên Google Sheets?');
-        if (!confirmed) return;
+    const syncToSheets = async (nextItems = items, options = {}) => {
+        const { showSuccessToast = true } = options;
+        const scriptUrl = getScriptUrl();
+        if (!scriptUrl) {
+            showToast('Vui lòng cấu hình Google Script Web App URL trước!', 'error');
+            return;
+        }
         setIsLoading(true);
         try {
-            const response = await fetch(getScriptUrl(), {
+            const response = await fetch(scriptUrl, {
                 method: 'POST',
                 body: JSON.stringify({
                     action: 'sync_shopping',
-                    data: items,
+                    data: nextItems,
                 }),
             });
             await response.text();
-            showToast('Đã đồng bộ thành công!');
+            if (showSuccessToast) {
+                showToast('Đã lưu và đồng bộ thành công!');
+            }
         } catch (e) {
             showToast('Lỗi đồng bộ: ' + e.message, 'error');
         } finally {
@@ -69,24 +76,35 @@ const ShoppingPage = () => {
         }
     };
 
-    const loadFromSheets = async () => {
-        const confirmed = await showConfirm('Tải dữ liệu từ Sheets về sẽ ghi đè máy này. Tiếp tục?');
-        if (!confirmed) return;
+    const loadFromSheets = async (options = {}) => {
+        const { requireConfirm = true, silent = false } = options;
+        const scriptUrl = getScriptUrl();
+        if (!scriptUrl) return;
+
+        if (requireConfirm) {
+            const confirmed = await showConfirm('Tải dữ liệu từ Sheets về sẽ ghi đè máy này. Tiếp tục?');
+            if (!confirmed) return;
+        }
+
         setIsLoading(true);
         try {
-            const res = await fetch(`${getScriptUrl()}?action=get_shopping`);
+            const res = await fetch(`${scriptUrl}?action=get_shopping`);
             const data = await res.json();
             saveToLocal(data);
-            showToast('Tải dữ liệu thành công!');
+            if (!silent) {
+                showToast('Tải dữ liệu thành công!');
+            }
         } catch (e) {
-            showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+            if (!silent) {
+                showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
     // --- THAO TÁC ITEM ---
-    const handleAddItem = () => {
+    const handleAddItem = async () => {
         if (!formData.name) return;
         const newItem = {
             id: Date.now(),
@@ -95,18 +113,23 @@ const ShoppingPage = () => {
             bought: false,
             createdAt: new Date().toISOString(),
         };
-        saveToLocal([newItem, ...items]);
+        const updatedItems = [newItem, ...items];
+        saveToLocal(updatedItems);
+        await syncToSheets(updatedItems);
         setFormData({ name: '', price: '', category: 'Cần thiết', expectedDate: '' });
         setIsOpen(false);
     };
 
-    const toggleBought = (id) => {
+    const toggleBought = async (id) => {
         const updated = items.map((item) => (item.id === id ? { ...item, bought: !item.bought } : item));
         saveToLocal(updated);
+        await syncToSheets(updated, { showSuccessToast: false });
     };
 
-    const deleteItem = (id) => {
-        saveToLocal(items.filter((item) => item.id !== id));
+    const deleteItem = async (id) => {
+        const updated = items.filter((item) => item.id !== id);
+        saveToLocal(updated);
+        await syncToSheets(updated, { showSuccessToast: false });
     };
 
     const categoryOptions = useMemo(() => {
@@ -220,7 +243,7 @@ const ShoppingPage = () => {
                             onClick={syncToSheets}
                             className="flex items-center justify-center gap-2 p-3 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-600 hover:text-white transition-all"
                         >
-                            <CloudUpload size={20} /> Đồng bộ
+                            <CloudUpload size={20} /> Lưu
                         </button>
                         <button
                             onClick={loadFromSheets}

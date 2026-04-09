@@ -24,6 +24,7 @@ const FundPage = () => {
               };
     });
     const [toast, setToast] = useState(null);
+    const getScriptUrl = () => localStorage.getItem('google_script_url');
 
     // 2. Số dư thực tế của từng hũ (Lưu vào localStorage)
     const [balances, setBalances] = useState(() => {
@@ -70,8 +71,12 @@ const FundPage = () => {
         localStorage.setItem('fund_ratios', JSON.stringify(ratios));
     }, [ratios]);
 
+    useEffect(() => {
+        loadFunds({ requireConfirm: false, silent: true });
+    }, []);
+
     // Hàm chia tiền tự động
-    const distributeMoney = (amount) => {
+    const distributeMoney = async (amount) => {
         const numAmount = Number(amount);
         if (numAmount === 0 || isNaN(numAmount)) return;
 
@@ -80,6 +85,8 @@ const FundPage = () => {
             newBalances[key] += (numAmount * ratios[key]) / 100;
         });
         setBalances(newBalances);
+        localStorage.setItem('fund_balances', JSON.stringify(newBalances));
+        await syncFundBalances(newBalances, { showSuccessToast: false });
         setInputAmount('');
     };
 
@@ -92,23 +99,28 @@ const FundPage = () => {
         give: { label: 'Cho đi', icon: '🎁', color: 'text-purple-500', bg: 'bg-purple-50' },
     };
 
-    async function syncFundBalances() {
-        const confirmed = await showConfirm('Đồng bộ dữ liệu hiện tại lên Google Sheets?');
-        if (!confirmed) return;
+    async function syncFundBalances(dataToSync = balances, options = {}) {
+        const { showSuccessToast = true } = options;
+        const scriptUrl = getScriptUrl();
+        if (!scriptUrl) {
+            showToast('Vui lòng cấu hình Google Script Web App URL trước!', 'error');
+            return;
+        }
 
         setIsLoading(true);
-        const fundBalances = JSON.parse(localStorage.getItem('fund_balances')) || {};
         const payload = {
             action: 'sync_funds',
-            data: fundBalances,
+            data: dataToSync,
         };
 
         try {
-            await fetch(localStorage.getItem('google_script_url'), {
+            await fetch(scriptUrl, {
                 method: 'POST',
                 body: JSON.stringify(payload),
             });
-            showToast('Đồng bộ thành công!');
+            if (showSuccessToast) {
+                showToast('Đã lưu và đồng bộ thành công!');
+            }
         } catch (e) {
             showToast('Lỗi đồng bộ Quỹ: ' + e.message, 'error');
         } finally {
@@ -116,21 +128,31 @@ const FundPage = () => {
         }
     }
 
-    async function loadFunds() {
-        const confirmed = await showConfirm(
-            'Hành động này sẽ ghi đè dữ liệu trên máy bằng dữ liệu từ Sheets. Tiếp tục?',
-        );
-        if (!confirmed) return;
+    async function loadFunds(options = {}) {
+        const { requireConfirm = true, silent = false } = options;
+        const scriptUrl = getScriptUrl();
+        if (!scriptUrl) return;
+
+        if (requireConfirm) {
+            const confirmed = await showConfirm(
+                'Hành động này sẽ ghi đè dữ liệu trên máy bằng dữ liệu từ Sheets. Tiếp tục?',
+            );
+            if (!confirmed) return;
+        }
 
         setIsLoading(true);
         try {
-            const res = await fetch(localStorage.getItem('google_script_url') + '?action=get_funds');
+            const res = await fetch(scriptUrl + '?action=get_funds');
             const data = await res.json();
             setBalances(data);
             localStorage.setItem('fund_balances', JSON.stringify(data));
-            showToast('Đã tải dữ liệu từ Sheets thành công!');
+            if (!silent) {
+                showToast('Đã tải dữ liệu từ Sheets thành công!');
+            }
         } catch (e) {
-            showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+            if (!silent) {
+                showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -186,7 +208,7 @@ const FundPage = () => {
                             onClick={syncFundBalances}
                             className="flex items-center justify-center gap-2 bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-lg shadow-blue-100 active:scale-95 transition-transform"
                         >
-                            <CloudUpload size={20} /> Đồng bộ
+                            <CloudUpload size={20} /> Lưu
                         </button>
                         <button
                             onClick={loadFunds}
@@ -298,7 +320,7 @@ const FundPage = () => {
             </div>
             {/* MODAL ĐIỀU CHỈNH SỐ DƯ TRỰC TIẾP */}
             {isAddMoneyOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6" style={{marginTop: 0}}>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6" style={{ marginTop: 0 }}>
                     <div
                         className="absolute inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity"
                         onClick={() => setIsAddMoneyOpen(false)}
@@ -334,9 +356,15 @@ const FundPage = () => {
                                 HỦY
                             </button>
                             <button
-                                onClick={() => {
+                                onClick={async () => {
                                     const val = Number(document.getElementById('editBalanceInput').value);
-                                    setBalances((prev) => ({ ...prev, [selectedFund]: prev[selectedFund] + val }));
+                                    const nextBalances = {
+                                        ...balances,
+                                        [selectedFund]: balances[selectedFund] + val,
+                                    };
+                                    setBalances(nextBalances);
+                                    localStorage.setItem('fund_balances', JSON.stringify(nextBalances));
+                                    await syncFundBalances(nextBalances, { showSuccessToast: false });
                                     setIsAddMoneyOpen(false);
                                 }}
                                 className="flex-[2] py-5 bg-indigo-600 text-white rounded-3xl font-black shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase text-xs tracking-widest"
@@ -349,7 +377,7 @@ const FundPage = () => {
             )}
             {/* MODAL CẤU HÌNH TỶ LỆ % */}
             {isSettingOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6" style={{marginTop: 0}}>
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6" style={{ marginTop: 0 }}>
                     <div
                         className="absolute inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity"
                         onClick={() => setIsSettingOpen(false)}

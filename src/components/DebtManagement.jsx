@@ -1,4 +1,4 @@
-import { CloudUpload, RefreshCw, X } from 'lucide-react';
+import { CloudUpload, X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 
 const DebtPage = () => {
@@ -6,7 +6,6 @@ const DebtPage = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [debts, setDebts] = useState([]);
     const [toast, setToast] = useState(null);
-    const [confirmDialog, setConfirmDialog] = useState(null);
 
     // State cho Form
     const [formData, setFormData] = useState({
@@ -17,11 +16,14 @@ const DebtPage = () => {
         type: 'debt', // 'debt' hoặc 'loan'
     });
 
+    const getScriptUrl = () => localStorage.getItem('google_script_url');
+
     // 1. Load dữ liệu khi vào trang
     useEffect(() => {
         const saved = localStorage.getItem('debts_list');
         if (saved) setDebts(JSON.parse(saved));
-    }, [isLoading]);
+        loadLoans({ silent: true });
+    }, []);
 
     // 2. Tính toán tổng số tiền nợ/cho vay
     const totalDebt = debts.filter((d) => d.type === 'debt').reduce((sum, item) => sum + Number(item.amount), 0);
@@ -36,15 +38,8 @@ const DebtPage = () => {
         setTimeout(() => setToast(null), 3000);
     };
 
-    // Hàm show confirm (thay window.confirm để tránh lỗi iOS)
-    const showConfirm = (message) => {
-        return new Promise((resolve) => {
-            setConfirmDialog({ message, resolve });
-        });
-    };
-
     // 3. Hàm lưu khoản nợ
-    const handleSaveDebt = () => {
+    const handleSaveDebt = async () => {
         if (!formData.name || !formData.amount) {
             showToast('Vui lòng nhập đủ tên và số tiền!', 'error');
             return;
@@ -60,6 +55,7 @@ const DebtPage = () => {
         const updatedDebts = [newDebt, ...debts];
         setDebts(updatedDebts);
         localStorage.setItem('debts_list', JSON.stringify(updatedDebts));
+        await syncLoansDebts(updatedDebts);
 
         // Reset & Close
         setFormData({ title: '', name: '', amount: '', date: '', type: 'debt' });
@@ -67,29 +63,35 @@ const DebtPage = () => {
     };
 
     // 4. Hàm xóa khoản nợ (Đã trả)
-    const deleteDebt = (id) => {
+    const deleteDebt = async (id) => {
         const updated = debts.filter((d) => d.id !== id);
         setDebts(updated);
         localStorage.setItem('debts_list', JSON.stringify(updated));
+        await syncLoansDebts(updated);
     };
 
-    async function syncLoansDebts() {
-        const confirmed = await showConfirm('Đồng bộ dữ liệu hiện tại lên Google Sheets?');
-        if (!confirmed) return;
+    async function syncLoansDebts(dataToSync = debts, options = {}) {
+        const { showSuccessToast = true } = options;
+        const scriptUrl = getScriptUrl();
+        if (!scriptUrl) {
+            showToast('Vui lòng cấu hình Google Script Web App URL trước!', 'error');
+            return;
+        }
 
         setIsLoading(true);
-        const loansDebts = JSON.parse(localStorage.getItem('debts_list')) || [];
         const payload = {
             action: 'sync_loans',
-            data: loansDebts,
+            data: dataToSync,
         };
 
         try {
-            await fetch(localStorage.getItem('google_script_url'), {
+            await fetch(scriptUrl, {
                 method: 'POST',
                 body: JSON.stringify(payload),
             });
-            showToast('Đồng bộ thành công!');
+            if (showSuccessToast) {
+                showToast('Đã lưu và đồng bộ thành công!');
+            }
         } catch (e) {
             showToast('Lỗi đồng bộ Vay/Nợ: ' + e.message, 'error');
         } finally {
@@ -97,22 +99,25 @@ const DebtPage = () => {
         }
     }
 
-    async function loadLoans() {
-        const confirmed = await showConfirm(
-            'Hành động này sẽ ghi đè dữ liệu trên máy bằng dữ liệu từ Sheets. Tiếp tục?',
-        );
-        if (!confirmed) return;
+    async function loadLoans(options = {}) {
+        const { silent = false } = options;
+        const scriptUrl = getScriptUrl();
+        if (!scriptUrl) return;
 
         setIsLoading(true);
         try {
-            const res = await fetch(localStorage.getItem('google_script_url') + '?action=get_loans');
+            const res = await fetch(scriptUrl + '?action=get_loans');
             const data = await res.json();
-            localStorage.setItem('debts_list', JSON.stringify(data));
-            const saved = localStorage.getItem('debts_list');
-            if (saved) setDebts(JSON.parse(saved));
-            showToast('Đã tải dữ liệu từ Sheets thành công!');
+            const safeData = Array.isArray(data) ? data : [];
+            localStorage.setItem('debts_list', JSON.stringify(safeData));
+            setDebts(safeData);
+            if (!silent) {
+                showToast('Đã tải dữ liệu từ Sheets thành công!');
+            }
         } catch (e) {
-            showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+            if (!silent) {
+                showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -165,16 +170,10 @@ const DebtPage = () => {
 
                     <div className="flex gap-4">
                         <button
-                            onClick={syncLoansDebts}
+                            onClick={() => syncLoansDebts()}
                             className="flex items-center justify-center gap-2 bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-lg shadow-blue-100 active:scale-95 transition-transform"
                         >
-                            <CloudUpload size={20} /> Đồng bộ
-                        </button>
-                        <button
-                            onClick={loadLoans}
-                            className="flex items-center justify-center gap-2 bg-green-600 text-white p-4 rounded-2xl font-bold shadow-lg shadow-blue-100 active:scale-95 transition-transform"
-                        >
-                            <RefreshCw size={20} /> Tải dữ liệu về
+                            <CloudUpload size={20} /> Lưu
                         </button>
                     </div>
                 </header>
@@ -285,7 +284,9 @@ const DebtPage = () => {
 
                             {/* Title Input - MỚI THÊM */}
                             <div className="space-y-1">
-                                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">Nội dung nợ (Nợ gì?)</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 tracking-widest">
+                                    Nội dung nợ (Nợ gì?)
+                                </label>
                                 <input
                                     type="text"
                                     value={formData.title}
@@ -351,43 +352,6 @@ const DebtPage = () => {
                                     Lưu khoản nợ
                                 </button>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* CUSTOM CONFIRM DIALOG - FIX IOS ISSUE */}
-            {confirmDialog && (
-                <div className="fixed inset-0 z-[110] flex items-center justify-center p-6" style={{marginTop: 0}}>
-                    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md transition-opacity" />
-                    <div className="relative w-full max-w-sm bg-white rounded-[3rem] p-10 shadow-2xl animate-in fade-in zoom-in-95 duration-300">
-                        <div className="text-center mb-8">
-                            <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
-                                ⚠️
-                            </div>
-                            <p className="text-base font-bold text-slate-700 leading-relaxed">
-                                {confirmDialog.message}
-                            </p>
-                        </div>
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => {
-                                    confirmDialog.resolve(false);
-                                    setConfirmDialog(null);
-                                }}
-                                className="flex-1 py-5 bg-slate-100 text-slate-600 rounded-3xl font-black active:scale-95 transition-all uppercase text-xs tracking-widest"
-                            >
-                                HỦY
-                            </button>
-                            <button
-                                onClick={() => {
-                                    confirmDialog.resolve(true);
-                                    setConfirmDialog(null);
-                                }}
-                                className="flex-1 py-5 bg-indigo-600 text-white rounded-3xl font-black shadow-lg shadow-indigo-100 active:scale-95 transition-all uppercase text-xs tracking-widest"
-                            >
-                                XÁC NHẬN
-                            </button>
                         </div>
                     </div>
                 </div>
