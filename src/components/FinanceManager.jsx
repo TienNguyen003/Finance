@@ -10,7 +10,7 @@ import {
     Wallet,
     X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'expense_detail_data';
 
@@ -62,55 +62,21 @@ const App = () => {
     const [toast, setToast] = useState(null); // Quan trọng: Chống ghi đè khi khởi tạo
     const [confirmDialog, setConfirmDialog] = useState(null);
 
-    // --- EFFECTS ---
-
-    // 1. Load dữ liệu từ LocalStorage khi mở app
-    useEffect(() => {
-        const savedData = normalizeHistoryData(JSON.parse(localStorage.getItem(STORAGE_KEY)) || []);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
-        setHistory(savedData);
-        loadDataForMonth(selectedMonth, savedData);
-
-        // Đánh dấu đã load xong sau một khoảng nghỉ ngắn
-        setTimeout(() => setIsLoaded(true), 300);
-    }, [selectedMonth]);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        loadFromGoogle({ requireConfirm: false, silent: true });
+    // Hàm show toast
+    const showToast = useCallback((message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
     }, []);
 
-    // 2. AUTO-SAVE: Tự động cập nhật history và LocalStorage khi bạn nhập liệu
-    useEffect(() => {
-        if (!isLoaded) return; // Nếu chưa load xong dữ liệu cũ, không được chạy logic này
-
-        const totalIncome = incomeItems.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
-        const totalExp = expenseItems.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
-        const remain = totalIncome - totalExp;
-
-        const entry = {
-            date: selectedMonth,
-            income: totalIncome,
-            incomeItems: incomeItems.filter((i) => i.name || i.amount),
-            totalExp,
-            remain,
-            items: expenseItems.filter((i) => i.name || i.amount),
-        };
-
-        setHistory((prev) => {
-            const newHistory = [...prev];
-            const idx = newHistory.findIndex((h) => h.date === selectedMonth);
-            if (idx > -1) newHistory[idx] = entry;
-            else newHistory.push(entry);
-
-            const sorted = newHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
-            return sorted;
+    // Hàm show confirm (thay window.confirm để tránh lỗi iOS)
+    const showConfirm = useCallback((message) => {
+        return new Promise((resolve) => {
+            setConfirmDialog({ message, resolve });
         });
-    }, [incomeItems, expenseItems, selectedMonth, isLoaded]);
+    }, []);
 
     // --- LOGIC FUNCTIONS ---
-    const loadDataForMonth = (month, currentHistory) => {
+    const loadDataForMonth = useCallback((month, currentHistory) => {
         const data = currentHistory.find((item) => item.date === month);
         if (data) {
             const safeIncomeItems = ensureUniqueItemIds(data.incomeItems || []);
@@ -130,7 +96,7 @@ const App = () => {
             setIncomeItems([{ id: createItemId(), name: 'Lương', amount: '', date: `${month}-01` }]);
             setExpenseItems([{ id: createItemId(), name: '', amount: '', date: `${month}-01` }]);
         }
-    };
+    }, []);
 
     const handleMonthChange = (e) => {
         const newMonth = e.target.value;
@@ -182,40 +148,89 @@ const App = () => {
         }
     };
 
-    async function loadFromGoogle(options = {}) {
-        const { requireConfirm = true, silent = false } = options;
-        if (!config.scriptUrl) {
-            if (!silent) {
-                showToast('Vui lòng điền Web App URL!', 'error');
+    const loadFromGoogle = useCallback(
+        async (options = {}) => {
+            const { requireConfirm = true, silent = false } = options;
+            if (!config.scriptUrl) {
+                if (!silent) {
+                    showToast('Vui lòng điền Web App URL!', 'error');
+                }
+                return;
             }
-            return;
-        }
 
-        if (requireConfirm) {
-            const confirmed = await showConfirm(
-                'Hành động này sẽ ghi đè dữ liệu trên máy bằng dữ liệu từ Sheets. Tiếp tục?',
-            );
-            if (!confirmed) return;
-        }
+            if (requireConfirm) {
+                const confirmed = await showConfirm(
+                    'Hành động này sẽ ghi đè dữ liệu trên máy bằng dữ liệu từ Sheets. Tiếp tục?',
+                );
+                if (!confirmed) return;
+            }
 
-        setIsLoading(true);
-        try {
-            const res = await fetch(config.scriptUrl + '?action=get_history');
-            const data = normalizeHistoryData(await res.json());
-            localStorage.setItem('expense_detail_data', JSON.stringify(data));
-            setHistory(data);
-            loadDataForMonth(selectedMonth, data);
-            if (!silent) {
-                showToast('Đã tải dữ liệu từ Sheets thành công!');
+            setIsLoading(true);
+            try {
+                const res = await fetch(config.scriptUrl + '?action=get_history');
+                const data = normalizeHistoryData(await res.json());
+                localStorage.setItem('expense_detail_data', JSON.stringify(data));
+                setHistory(data);
+                loadDataForMonth(selectedMonth, data);
+                if (!silent) {
+                    showToast('Đã tải dữ liệu từ Sheets thành công!');
+                }
+            } catch (e) {
+                if (!silent) {
+                    showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+                }
+            } finally {
+                setIsLoading(false);
             }
-        } catch (e) {
-            if (!silent) {
-                showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    }
+        },
+        [config.scriptUrl, selectedMonth, loadDataForMonth, showConfirm, showToast],
+    );
+
+    // --- EFFECTS ---
+
+    // 1. Load dữ liệu từ LocalStorage khi mở app
+    useEffect(() => {
+        const savedData = normalizeHistoryData(JSON.parse(localStorage.getItem(STORAGE_KEY)) || []);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(savedData));
+        setHistory(savedData);
+        loadDataForMonth(selectedMonth, savedData);
+
+        // Đánh dấu đã load xong sau một khoảng nghỉ ngắn
+        setTimeout(() => setIsLoaded(true), 300);
+    }, [selectedMonth, loadDataForMonth]);
+
+    useEffect(() => {
+        loadFromGoogle({ requireConfirm: false, silent: true });
+    }, [loadFromGoogle]);
+
+    // 2. AUTO-SAVE: Tự động cập nhật history và LocalStorage khi bạn nhập liệu
+    useEffect(() => {
+        if (!isLoaded) return; // Nếu chưa load xong dữ liệu cũ, không được chạy logic này
+
+        const totalIncome = incomeItems.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+        const totalExp = expenseItems.reduce((sum, i) => sum + (parseFloat(i.amount) || 0), 0);
+        const remain = totalIncome - totalExp;
+
+        const entry = {
+            date: selectedMonth,
+            income: totalIncome,
+            incomeItems: incomeItems.filter((i) => i.name || i.amount),
+            totalExp,
+            remain,
+            items: expenseItems.filter((i) => i.name || i.amount),
+        };
+
+        setHistory((prev) => {
+            const newHistory = [...prev];
+            const idx = newHistory.findIndex((h) => h.date === selectedMonth);
+            if (idx > -1) newHistory[idx] = entry;
+            else newHistory.push(entry);
+
+            const sorted = newHistory.sort((a, b) => new Date(a.date) - new Date(b.date));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(sorted));
+            return sorted;
+        });
+    }, [incomeItems, expenseItems, selectedMonth, isLoaded]);
 
     // --- THỐNG KÊ ---
     const currentYear = selectedMonth.split('-')[0];
@@ -225,19 +240,6 @@ const App = () => {
     const totalRemain = history.reduce((s, h) => s + h.remain, 0);
 
     const formatVND = (v) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v);
-
-    // Hàm show toast
-    const showToast = (message, type = 'success') => {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 3000);
-    };
-
-    // Hàm show confirm (thay window.confirm để tránh lỗi iOS)
-    const showConfirm = (message) => {
-        return new Promise((resolve) => {
-            setConfirmDialog({ message, resolve });
-        });
-    };
 
     return (
         <div className="bg-slate-100 p-5 text-slate-800">
