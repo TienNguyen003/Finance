@@ -75,6 +75,7 @@ const App = () => {
         setTimeout(() => setIsLoaded(true), 300);
     }, [selectedMonth]);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         loadFromGoogle({ requireConfirm: false, silent: true });
     }, []);

@@ -1,5 +1,5 @@
 import { CloudUpload, RefreshCw, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'smart_savings_v5';
 
@@ -16,13 +16,57 @@ export default function StrategicFinance() {
     const [promptDialog, setPromptDialog] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
 
+    const showToast = useCallback((message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    }, []);
+
+    // Hàm show confirm (thay window.confirm để tránh lỗi iOS)
+    const showConfirm = useCallback((message) => {
+        return new Promise((resolve) => {
+            setConfirmDialog({ message, resolve });
+        });
+    }, []);
+
+    const getScriptUrl = useCallback(() => localStorage.getItem('google_script_url'), []);
+
+    const loadFromSheets = useCallback(
+        async (options = {}) => {
+            const { requireConfirm = true, silent = false } = options;
+            const scriptUrl = getScriptUrl();
+            if (!scriptUrl) return;
+
+            if (requireConfirm) {
+                const confirmed = await showConfirm('Tải dữ liệu từ Sheets sẽ ghi đè dữ liệu hiện tại. Tiếp tục?');
+                if (!confirmed) return;
+            }
+
+            setIsLoading(true);
+            try {
+                const res = await fetch(`${scriptUrl}?action=get_goals`);
+                const data = await res.json();
+                setGoals(data);
+                if (!silent) {
+                    showToast('Tải dữ liệu thành công!');
+                }
+            } catch (e) {
+                if (!silent) {
+                    showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [getScriptUrl, showConfirm, showToast],
+    );
+
     useEffect(() => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
     }, [goals]);
 
     useEffect(() => {
         loadFromSheets({ requireConfirm: false, silent: true });
-    }, []);
+    }, [loadFromSheets]);
 
     const formatMoney = (amount) =>
         new Intl.NumberFormat('vi-VN', {
@@ -33,19 +77,6 @@ export default function StrategicFinance() {
     const clearForm = () => {
         setEditingId(null);
         setForm({ name: '', target: '', deadline: '', note: '' });
-    };
-
-    // Hàm show toast
-    const showToast = (message, type = 'success') => {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 3000);
-    };
-
-    // Hàm show confirm (thay window.confirm để tránh lỗi iOS)
-    const showConfirm = (message) => {
-        return new Promise((resolve) => {
-            setConfirmDialog({ message, resolve });
-        });
     };
 
     // Hàm show prompt (thay window.prompt để tránh lỗi iOS)
@@ -101,8 +132,6 @@ export default function StrategicFinance() {
     const totalTarget = goals.reduce((sum, g) => sum + g.target, 0);
     const overallPercent = totalTarget > 0 ? (totalValue / totalTarget) * 100 : 0;
 
-    const getScriptUrl = () => localStorage.getItem('google_script_url');
-
     const syncToSheets = async (nextGoals = goals, options = {}) => {
         const { showSuccessToast = true } = options;
         const scriptUrl = getScriptUrl();
@@ -123,33 +152,6 @@ export default function StrategicFinance() {
             }
         } catch (e) {
             showToast('Lỗi đồng bộ: ' + e.message, 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const loadFromSheets = async (options = {}) => {
-        const { requireConfirm = true, silent = false } = options;
-        const scriptUrl = getScriptUrl();
-        if (!scriptUrl) return;
-
-        if (requireConfirm) {
-            const confirmed = await showConfirm('Tải dữ liệu từ Sheets sẽ ghi đè dữ liệu hiện tại. Tiếp tục?');
-            if (!confirmed) return;
-        }
-
-        setIsLoading(true);
-        try {
-            const res = await fetch(`${scriptUrl}?action=get_goals`);
-            const data = await res.json();
-            setGoals(data);
-            if (!silent) {
-                showToast('Tải dữ liệu thành công!');
-            }
-        } catch (e) {
-            if (!silent) {
-                showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
-            }
         } finally {
             setIsLoading(false);
         }

@@ -1,5 +1,5 @@
 import { CloudUpload, RefreshCw, X } from 'lucide-react';
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
 const FundPage = () => {
     const [isSettingOpen, setIsSettingOpen] = useState(false);
@@ -24,7 +24,7 @@ const FundPage = () => {
               };
     });
     const [toast, setToast] = useState(null);
-    const getScriptUrl = () => localStorage.getItem('google_script_url');
+    const getScriptUrl = useCallback(() => localStorage.getItem('google_script_url'), []);
 
     // 2. Số dư thực tế của từng hũ (Lưu vào localStorage)
     const [balances, setBalances] = useState(() => {
@@ -50,17 +50,50 @@ const FundPage = () => {
     const totalPercentage = Object.values(ratios).reduce((a, b) => a + b, 0);
 
     // Hàm show toast
-    const showToast = (message, type = 'success') => {
+    const showToast = useCallback((message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
-    };
+    }, []);
 
     // Hàm show confirm (thay window.confirm để tránh lỗi iOS)
-    const showConfirm = (message) => {
+    const showConfirm = useCallback((message) => {
         return new Promise((resolve) => {
             setConfirmDialog({ message, resolve });
         });
-    };
+    }, []);
+
+    const loadFunds = useCallback(
+        async (options = {}) => {
+            const { requireConfirm = true, silent = false } = options;
+            const scriptUrl = getScriptUrl();
+            if (!scriptUrl) return;
+
+            if (requireConfirm) {
+                const confirmed = await showConfirm(
+                    'Hành động này sẽ ghi đè dữ liệu trên máy bằng dữ liệu từ Sheets. Tiếp tục?',
+                );
+                if (!confirmed) return;
+            }
+
+            setIsLoading(true);
+            try {
+                const res = await fetch(scriptUrl + '?action=get_funds');
+                const data = await res.json();
+                setBalances(data);
+                localStorage.setItem('fund_balances', JSON.stringify(data));
+                if (!silent) {
+                    showToast('Đã tải dữ liệu từ Sheets thành công!');
+                }
+            } catch (e) {
+                if (!silent) {
+                    showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [getScriptUrl, showConfirm, showToast],
+    );
 
     // Effect lưu dữ liệu khi có thay đổi
     useEffect(() => {
@@ -73,7 +106,7 @@ const FundPage = () => {
 
     useEffect(() => {
         loadFunds({ requireConfirm: false, silent: true });
-    }, []);
+    }, [loadFunds]);
 
     // Hàm chia tiền tự động
     const distributeMoney = async (amount) => {
@@ -123,36 +156,6 @@ const FundPage = () => {
             }
         } catch (e) {
             showToast('Lỗi đồng bộ Quỹ: ' + e.message, 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    }
-
-    async function loadFunds(options = {}) {
-        const { requireConfirm = true, silent = false } = options;
-        const scriptUrl = getScriptUrl();
-        if (!scriptUrl) return;
-
-        if (requireConfirm) {
-            const confirmed = await showConfirm(
-                'Hành động này sẽ ghi đè dữ liệu trên máy bằng dữ liệu từ Sheets. Tiếp tục?',
-            );
-            if (!confirmed) return;
-        }
-
-        setIsLoading(true);
-        try {
-            const res = await fetch(scriptUrl + '?action=get_funds');
-            const data = await res.json();
-            setBalances(data);
-            localStorage.setItem('fund_balances', JSON.stringify(data));
-            if (!silent) {
-                showToast('Đã tải dữ liệu từ Sheets thành công!');
-            }
-        } catch (e) {
-            if (!silent) {
-                showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
-            }
         } finally {
             setIsLoading(false);
         }

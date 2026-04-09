@@ -1,5 +1,5 @@
 import { CloudUpload, X } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 const DebtPage = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -16,14 +16,47 @@ const DebtPage = () => {
         type: 'debt', // 'debt' hoặc 'loan'
     });
 
-    const getScriptUrl = () => localStorage.getItem('google_script_url');
+    const getScriptUrl = useCallback(() => localStorage.getItem('google_script_url'), []);
+
+    // Hàm show toast
+    const showToast = useCallback((message, type = 'success') => {
+        setToast({ message, type });
+        setTimeout(() => setToast(null), 3000);
+    }, []);
+
+    const loadLoans = useCallback(
+        async (options = {}) => {
+            const { silent = false } = options;
+            const scriptUrl = getScriptUrl();
+            if (!scriptUrl) return;
+
+            setIsLoading(true);
+            try {
+                const res = await fetch(scriptUrl + '?action=get_loans');
+                const data = await res.json();
+                const safeData = Array.isArray(data) ? data : [];
+                localStorage.setItem('debts_list', JSON.stringify(safeData));
+                setDebts(safeData);
+                if (!silent) {
+                    showToast('Đã tải dữ liệu từ Sheets thành công!');
+                }
+            } catch (e) {
+                if (!silent) {
+                    showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [getScriptUrl, showToast],
+    );
 
     // 1. Load dữ liệu khi vào trang
     useEffect(() => {
         const saved = localStorage.getItem('debts_list');
         if (saved) setDebts(JSON.parse(saved));
         loadLoans({ silent: true });
-    }, []);
+    }, [loadLoans]);
 
     // 2. Tính toán tổng số tiền nợ/cho vay
     const totalDebt = debts.filter((d) => d.type === 'debt').reduce((sum, item) => sum + Number(item.amount), 0);
@@ -31,12 +64,6 @@ const DebtPage = () => {
     const totalLoan = debts.filter((d) => d.type === 'loan').reduce((sum, item) => sum + Number(item.amount), 0);
 
     const formatVND = (amount) => new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
-
-    // Hàm show toast
-    const showToast = (message, type = 'success') => {
-        setToast({ message, type });
-        setTimeout(() => setToast(null), 3000);
-    };
 
     // 3. Hàm lưu khoản nợ
     const handleSaveDebt = async () => {
@@ -94,30 +121,6 @@ const DebtPage = () => {
             }
         } catch (e) {
             showToast('Lỗi đồng bộ Vay/Nợ: ' + e.message, 'error');
-        } finally {
-            setIsLoading(false);
-        }
-    }
-
-    async function loadLoans(options = {}) {
-        const { silent = false } = options;
-        const scriptUrl = getScriptUrl();
-        if (!scriptUrl) return;
-
-        setIsLoading(true);
-        try {
-            const res = await fetch(scriptUrl + '?action=get_loans');
-            const data = await res.json();
-            const safeData = Array.isArray(data) ? data : [];
-            localStorage.setItem('debts_list', JSON.stringify(safeData));
-            setDebts(safeData);
-            if (!silent) {
-                showToast('Đã tải dữ liệu từ Sheets thành công!');
-            }
-        } catch (e) {
-            if (!silent) {
-                showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
-            }
         } finally {
             setIsLoading(false);
         }

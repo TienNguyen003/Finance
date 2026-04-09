@@ -1,5 +1,5 @@
 import { CheckCircle, Circle, CloudUpload, GripVertical, Plus, RefreshCw, Trash2, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const ShoppingPage = () => {
     const [items, setItems] = useState([]);
@@ -22,32 +22,26 @@ const ShoppingPage = () => {
     });
 
     // Load dữ liệu ban đầu
-    useEffect(() => {
-        const saved = localStorage.getItem('shopping_list');
-        if (saved) setItems(JSON.parse(saved));
-        loadFromSheets({ requireConfirm: false, silent: true });
-    }, []);
-
     const saveToLocal = (newItems) => {
         setItems(newItems);
         localStorage.setItem('shopping_list', JSON.stringify(newItems));
     };
 
     // Hàm show toast
-    const showToast = (message, type = 'success') => {
+    const showToast = useCallback((message, type = 'success') => {
         setToast({ message, type });
         setTimeout(() => setToast(null), 3000);
-    };
+    }, []);
 
     // Hàm show confirm (thay window.confirm để tránh lỗi iOS)
-    const showConfirm = (message) => {
+    const showConfirm = useCallback((message) => {
         return new Promise((resolve) => {
             setConfirmDialog({ message, resolve });
         });
-    };
+    }, []);
 
     // --- LOGIC GOOGLE SHEETS ---
-    const getScriptUrl = () => localStorage.getItem('google_script_url');
+    const getScriptUrl = useCallback(() => localStorage.getItem('google_script_url'), []);
 
     const syncToSheets = async (nextItems = items, options = {}) => {
         const { showSuccessToast = true } = options;
@@ -76,32 +70,41 @@ const ShoppingPage = () => {
         }
     };
 
-    const loadFromSheets = async (options = {}) => {
-        const { requireConfirm = true, silent = false } = options;
-        const scriptUrl = getScriptUrl();
-        if (!scriptUrl) return;
+    const loadFromSheets = useCallback(
+        async (options = {}) => {
+            const { requireConfirm = true, silent = false } = options;
+            const scriptUrl = getScriptUrl();
+            if (!scriptUrl) return;
 
-        if (requireConfirm) {
-            const confirmed = await showConfirm('Tải dữ liệu từ Sheets về sẽ ghi đè máy này. Tiếp tục?');
-            if (!confirmed) return;
-        }
+            if (requireConfirm) {
+                const confirmed = await showConfirm('Tải dữ liệu từ Sheets về sẽ ghi đè máy này. Tiếp tục?');
+                if (!confirmed) return;
+            }
 
-        setIsLoading(true);
-        try {
-            const res = await fetch(`${scriptUrl}?action=get_shopping`);
-            const data = await res.json();
-            saveToLocal(data);
-            if (!silent) {
-                showToast('Tải dữ liệu thành công!');
+            setIsLoading(true);
+            try {
+                const res = await fetch(`${scriptUrl}?action=get_shopping`);
+                const data = await res.json();
+                saveToLocal(data);
+                if (!silent) {
+                    showToast('Tải dữ liệu thành công!');
+                }
+            } catch (e) {
+                if (!silent) {
+                    showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
+                }
+            } finally {
+                setIsLoading(false);
             }
-        } catch (e) {
-            if (!silent) {
-                showToast('Lỗi tải dữ liệu: ' + e.message, 'error');
-            }
-        } finally {
-            setIsLoading(false);
-        }
-    };
+        },
+        [getScriptUrl, showConfirm, showToast],
+    );
+
+    useEffect(() => {
+        const saved = localStorage.getItem('shopping_list');
+        if (saved) setItems(JSON.parse(saved));
+        loadFromSheets({ requireConfirm: false, silent: true });
+    }, [loadFromSheets]);
 
     // --- THAO TÁC ITEM ---
     const handleAddItem = async () => {
